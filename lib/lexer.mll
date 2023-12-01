@@ -13,6 +13,9 @@ rule read_token = parse
 | "else" { ELSE }
 | '(' { LPAREN }
 | ')' { RPAREN }
+| '{' { LBRACE }
+| '}' { RBRACE }
+| ';' { SEMICOLON }
 | '*' { MUL }
 | '/' { DIV }
 | '%' { MOD }

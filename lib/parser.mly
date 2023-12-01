@@ -2,19 +2,25 @@
   open Ast
 %}
 
-%token <string>INT_CONST
+%token <string>INT_CONST 
 %token IF "if"
 %token ELSE "else"
 %token LPAREN "("
 %token RPAREN ")"
+%token LBRACE "{"
+%token RBRACE "}"
 %token MUL "*"
 %token DIV "/"
 %token MOD "%"
 %token MINUS "-"
 %token ADD "+"
+%token SEMICOLON ";"
 %token EOL
 
-%start <expr> main 
+%type <expr> exp
+%type <stat> stat
+
+%start <prog> main 
 
 %nonassoc below_ELSE
 %nonassoc ELSE
@@ -22,15 +28,31 @@
 %%
 
 main:
-| e = exp EOL { e }
+| p = stat EOL { p }
+
+stat:
+| s = exp_stat { s }
+| s = compound_stat { s }
+| s = selective_stat { s }
+
+exp_stat:
+| e = exp ";" { Exp_stat e } 
+| ";" { Null_stat }
+
+compound_stat:
+| "{" sl = stat_list "}" { Compound_stat sl }
+| "{" "}" { Null_stat }
+
+stat_list:
+| s = stat { s }
+| sl = stat_list s = stat { Stat_list (sl, s) }
+
+selective_stat:
+| "if" "(" e = exp ")" s = stat { If (e,s) } %prec below_ELSE
+| "if" "(" e = exp ")" s1 = stat "else" s2 = stat { If_else (e,s1,s2) }
 
 exp:
-| e = selective_exp { e }
-
-selective_exp:
 | e = additive_exp { e }
-| "if" "(" e1 = exp ")" e2 = exp { If (e1,e2) } %prec below_ELSE
-| "if" "(" e1 = exp ")" e2 = exp "else" e3 = exp { If_else (e1,e2,e3) }
 
 additive_exp:
 | e = mult_exp { e }
