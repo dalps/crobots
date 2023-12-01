@@ -13,5 +13,10 @@ rule read_token = parse
 | "else" { ELSE }
 | '(' { LPAREN }
 | ')' { RPAREN }
+| '*' { MUL }
+| '/' { DIV }
+| '%' { MOD }
+| '+' { ADD }
+| '-' { MINUS }
 | int_const { INT_CONST (Lexing.lexeme lexbuf) }
 | eof { EOL }
