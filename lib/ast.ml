@@ -3,7 +3,6 @@ type uop = UMinus
 
 type expr =
   | Int_const of int
-  | Term
   | Unary_exp of uop * expr
   | Add_exp of bop * expr * expr
   | Mul_exp of bop * expr * expr

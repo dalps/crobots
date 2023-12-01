@@ -45,7 +45,7 @@ compound_stat:
 
 stat_list:
 | s = stat { s }
-| sl = stat_list s = stat { Stat_list (sl, s) }
+| s = stat sl = stat_list { Stat_list (s, sl) } (* stat lists are left associative *)
 
 selective_stat:
 | "if" "(" e = exp ")" s = stat { If (e,s) } %prec below_ELSE

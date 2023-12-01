@@ -25,3 +25,9 @@ let%test "arithexpr" =
 let%test "stat_list" =
   "{ 1; 2; }" |> parse
   = Compound_stat (Stat_list (Exp_stat (Int_const 1), Exp_stat (Int_const 2)))
+
+let rec last = function [] -> None | [ x ] -> Some x | _ :: l -> last l
+
+let%test "trace1_1" =
+  "{ if (1) { 1; 2; } else {}}" |> parse |> trace |> last
+  = Some (Exp_stat (Int_const 2))
