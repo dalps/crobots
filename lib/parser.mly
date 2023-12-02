@@ -19,7 +19,7 @@
 %token COMMA ","
 %token ASSIGN "="
 %token INT_TYPE "int"
-%token EOL
+%token EOF
 
 %nonassoc below_ELSE
 %nonassoc ELSE
@@ -35,13 +35,13 @@
 (* there's a clear distinction between declarations and statements: statements are part of declarations *)
 
 main:
-| p = external_decl_list EOL { p }
+| p = external_decl_list EOF { p }
 
 test_exp:
-| e = exp EOL { e }
+| e = exp EOF { e }
 
 test_stat:
-| s = stat EOL { s }
+| s = stat EOF { s }
 
 external_decl_list:
 | d = external_decl { d }

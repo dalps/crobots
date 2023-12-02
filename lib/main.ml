@@ -1,8 +1,21 @@
 open Ast
 
-let parse line : prog =
-  let linebuf = Lexing.from_string line in
-  Parser.main Lexer.read_token linebuf
+let parse text =
+  let lexbuf = Lexing.from_string text in
+  try Parser.main Lexer.read_token lexbuf
+  with exn ->
+    let pos = lexbuf.lex_curr_p
+    and errstr =
+      match exn with
+      | Lexer.Error msg -> msg
+      | Parser.Error -> "syntax error"
+      | _ -> "weird error"
+    in
+    raise
+      (Failure
+         (Printf.sprintf "line %d, column %d: %s%!" pos.pos_lnum
+            (pos.pos_cnum - pos.pos_bol)
+            errstr))
 
 let fun_of_uop = function UMinus -> ( ~- )
 

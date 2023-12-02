@@ -1,8 +1,10 @@
 {
   open Parser
+
+  exception Error of string
 }
 
-let white = [' ' '\t' '\n']+
+let white = [' ' '\t']+
 
 let letter = ['a'-'z''A'-'Z']
 let digit = ['0'-'9']
@@ -11,6 +13,7 @@ let int_const = digit+
 
 rule read_token = parse
 | white { read_token lexbuf }
+| '\n' { Lexing.new_line lexbuf; read_token lexbuf }
 | "if" { IF }
 | "else" { ELSE }
 | '(' { LPAREN }
@@ -28,4 +31,5 @@ rule read_token = parse
 | "int" { INT_TYPE }
 | id { ID (Lexing.lexeme lexbuf) }
 | int_const { INT_CONST (Lexing.lexeme lexbuf) }
-| eof { EOL }
+| _ { raise (Error "unexpected character") }
+| eof { EOF }
