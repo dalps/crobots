@@ -7,12 +7,15 @@ type expr =
   | Add_exp of bop * expr * expr
   | Mul_exp of bop * expr * expr
 
-type stat =
-  | If of expr * stat
-  | If_else of expr * stat * stat
+type instruction =
+  | If of expr * instruction
+  | If_else of expr * instruction * instruction
   | Exp_stat of expr
   | Null_stat
-  | Compound_stat of stat
-  | Stat_list of stat * stat
+  | Compound_stat of instruction
+  | Decl_var of string
+  | Decl_var_init of string * expr
+  | Decl_fun of string * string list * instruction
+  | Seq of instruction * instruction
 
-type prog = stat
+type prog = instruction

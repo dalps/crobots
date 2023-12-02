@@ -2,7 +2,8 @@
   open Ast
 %}
 
-%token <string>INT_CONST 
+%token <string> INT_CONST 
+%token <string> ID
 %token IF "if"
 %token ELSE "else"
 %token LPAREN "("
@@ -15,20 +16,56 @@
 %token MINUS "-"
 %token ADD "+"
 %token SEMICOLON ";"
+%token COMMA ","
+%token ASSIGN "="
+%token INT_TYPE "int"
 %token EOL
-
-%type <expr> exp
-%type <stat> stat
-
-%start <prog> main 
 
 %nonassoc below_ELSE
 %nonassoc ELSE
 
+%start <prog> main
+
+(* additional start symbols for testing *)
+%start <expr> test_exp
+%start <prog> test_stat
+
 %%
 
+(* there's a clear distinction between declarations and statements: statements are part of declarations *)
+
 main:
-| p = stat EOL { p }
+| p = external_decl_list EOL { p }
+
+test_exp:
+| e = exp EOL { e }
+
+test_stat:
+| s = stat EOL { s }
+
+external_decl_list:
+| d = external_decl { d }
+| d = external_decl dl = external_decl_list { Seq (d, dl) }
+
+external_decl: 
+| d = function_definition  { d }
+| d = decl { d }
+
+function_definition:
+| type_spec id = declarator "(" pars = separated_list(",", declarator) ")" s = compound_stat { Decl_fun (id, pars, s) }
+
+decl: 
+| type_spec d = init_declarator ";" { d }
+
+init_declarator:
+| id = declarator { Decl_var id }
+| id = declarator "=" e = exp { Decl_var_init (id, e) }
+
+type_spec:
+| "int" {}
+
+declarator:
+| id = ID { id }
 
 stat:
 | s = exp_stat { s }
@@ -40,12 +77,16 @@ exp_stat:
 | ";" { Null_stat }
 
 compound_stat:
-| "{" sl = stat_list "}" { Compound_stat sl }
+| "{" xl = decl_or_stat_list "}" { Compound_stat xl }
 | "{" "}" { Null_stat }
 
-stat_list:
+decl_or_stat_list:
+| x = decl_or_stat { x }
+| x = decl_or_stat xl = decl_or_stat_list { Seq (x, xl) }
+
+decl_or_stat:
 | s = stat { s }
-| s = stat sl = stat_list { Stat_list (s, sl) } (* stat lists are left associative *)
+| d = decl { d }
 
 selective_stat:
 | "if" "(" e = exp ")" s = stat { If (e,s) } %prec below_ELSE

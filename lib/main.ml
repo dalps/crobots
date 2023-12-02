@@ -21,15 +21,31 @@ let rec eval_expr = function
 
 exception NoRuleApplies
 
+type memval = Null | Int of int | Code of instruction
+type memory = (string, memval) Hashtbl.t
+
+let mem = Hashtbl.create 99
+
 let rec trace1 = function
+  | Decl_var id ->
+      Hashtbl.add mem id Null;
+      raise NoRuleApplies
+  | Decl_var_init (id, e) ->
+      let v = eval_expr e in
+      Hashtbl.add mem id (Int v);
+      raise NoRuleApplies
+  | Decl_fun (id, pars, s) ->
+      Hashtbl.add mem id (Code s);
+      List.iter (fun id -> Hashtbl.add mem id Null) pars;
+      raise NoRuleApplies
   | If (e, s) when eval_expr e = 1 -> s
   | If_else (e, s1, s2) -> if eval_expr e = 0 then s2 else s1
-  | Compound_stat s -> s
-  | Stat_list (s, slst) -> (
+  | Compound_stat s -> trace1 s
+  | Seq (x, xlst) -> (
       try
-        let s' = trace1 s in
-        Stat_list (s', slst)
-      with NoRuleApplies -> slst)
+        let x' = trace1 x in
+        Seq (x', xlst)
+      with NoRuleApplies -> xlst)
   | _ -> raise NoRuleApplies
 
 let rec trace s =
