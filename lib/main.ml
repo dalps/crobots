@@ -11,12 +11,15 @@ let parse text =
       | Parser.Error -> "syntax error"
       | _ -> "weird error"
     in
-    raise
-      (Failure
-         (Printf.sprintf "line %d, column %d: %s%!" pos.pos_lnum
-            (pos.pos_cnum - pos.pos_bol)
-            errstr))
+    failwith
+      (Printf.sprintf "line %d, column %d: %s%!" pos.pos_lnum
+         (pos.pos_cnum - pos.pos_bol)
+         errstr)
 
+type memval = Null | Int of int | Code of instruction
+type memory = (string, memval) Hashtbl.t
+
+let mem = Hashtbl.create 99
 let fun_of_uop = function UMinus -> ( ~- )
 
 let fun_of_bop = function
@@ -27,17 +30,24 @@ let fun_of_bop = function
   | Mod -> ( mod )
 
 let rec eval_expr = function
+  | Var x -> (
+      try
+        match Hashtbl.find mem x with
+        | Int n -> n
+        | _ -> failwith "expected an int variable"
+      with Not_found -> failwith (Printf.sprintf "'%s' undeclared" x))
+  | Assign_exp (x, e) ->
+      let v = eval_expr e in
+      if Hashtbl.mem mem x then (
+        Hashtbl.add mem x (Int v);
+        v)
+      else failwith (Printf.sprintf "'%s' undeclared" x)
   | Int_const n -> n
   | Unary_exp (uop, e) -> (fun_of_uop uop) (eval_expr e)
   | Add_exp (bop, e1, e2) | Mul_exp (bop, e1, e2) ->
       (fun_of_bop bop) (eval_expr e1) (eval_expr e2)
 
 exception NoRuleApplies
-
-type memval = Null | Int of int | Code of instruction
-type memory = (string, memval) Hashtbl.t
-
-let mem = Hashtbl.create 99
 
 let rec trace1 = function
   | Decl_var id ->

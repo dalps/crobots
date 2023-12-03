@@ -50,3 +50,8 @@ let%test "decl_2" =
   && Hashtbl.find mem "y" = Null
   && Hashtbl.find mem "foo"
      = Code (Compound_stat (Decl_var_init ("x", Int_const 2)))
+
+let%test "assign_1" =
+  let _ = "int x = 2; int y = x + 42;" |> parse |> trace in
+  Hashtbl.find mem "x" = Int 2
+  && Hashtbl.find mem "y" = Int 44

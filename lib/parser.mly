@@ -32,8 +32,6 @@
 
 %%
 
-(* there's a clear distinction between declarations and statements: statements are part of declarations *)
-
 main:
 | p = external_decl_list EOF { p }
 
@@ -55,17 +53,21 @@ function_definition:
 | type_spec id = declarator "(" pars = separated_list(",", declarator) ")" s = compound_stat { Decl_fun (id, pars, s) }
 
 decl: 
-| type_spec d = init_declarator ";" { d }
+| type_spec d = init_declarator_list ";" { d }
+
+init_declarator_list:
+| d = init_declarator { d }
+| d = init_declarator "," dl = init_declarator_list { Seq(d, dl) }
 
 init_declarator:
 | id = declarator { Decl_var id }
-| id = declarator "=" e = exp { Decl_var_init (id, e) }
+| id = declarator "=" e = assignment_exp { Decl_var_init (id, e) }
 
 type_spec:
 | "int" {}
 
 declarator:
-| id = ID { id }
+| id = identifier { id }
 
 stat:
 | s = exp_stat { s }
@@ -93,7 +95,11 @@ selective_stat:
 | "if" "(" e = exp ")" s1 = stat "else" s2 = stat { If_else (e,s1,s2) }
 
 exp:
+| e = assignment_exp { e }
+
+assignment_exp:
 | e = additive_exp { e }
+| x = identifier "=" e = assignment_exp { Assign_exp (x, e) }
 
 additive_exp:
 | e = mult_exp { e }
@@ -111,6 +117,10 @@ unary_exp:
 | "-" e = unary_exp { Unary_exp ((UMinus), e)}
 
 primary_exp:
+| x = identifier { Var x }
 | n = INT_CONST { Int_const (int_of_string n) }
 | "(" e = exp ")" { e }
+
+identifier:
+| x = ID { x }
 

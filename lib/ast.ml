@@ -2,6 +2,8 @@ type bop = Add | Sub | Mul | Div | Mod
 type uop = UMinus
 
 type expr =
+  | Var of string
+  | Assign_exp of string * expr
   | Int_const of int
   | Unary_exp of uop * expr
   | Add_exp of bop * expr * expr
