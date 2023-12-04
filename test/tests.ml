@@ -22,13 +22,13 @@ let%test "dangling_else" =
 
 let%test "arithexpr" =
   "1 + 2 * 3 / -(2 - 3)" |> parse_expr
-  = Add_exp
+  = Binary_exp
       ( Add,
         Int_const 1,
-        Mul_exp
+        Binary_exp
           ( Div,
-            Mul_exp (Mul, Int_const 2, Int_const 3),
-            Unary_exp (UMinus, Add_exp (Sub, Int_const 2, Int_const 3)) ) )
+            Binary_exp (Mul, Int_const 2, Int_const 3),
+            Unary_exp (UMinus, Binary_exp (Sub, Int_const 2, Int_const 3)) ) )
 
 let%test "stat_list" =
   "{ 1; 2; }" |> parse_stat
@@ -36,7 +36,7 @@ let%test "stat_list" =
 
 let rec last = function [] -> None | [ x ] -> Some x | _ :: l -> last l
 
-let%test "trace1_1" =
+let%test "trace1" =
   "{ if (1) { 1; 2; } else {}}" |> parse_stat |> trace |> last
   = Some (Exp_stat (Int_const 2))
 
@@ -49,9 +49,12 @@ let%test "decl_2" =
   Hashtbl.find mem "x" = Null
   && Hashtbl.find mem "y" = Null
   && Hashtbl.find mem "foo"
-     = Code (Compound_stat (Decl_var_init ("x", Int_const 2)))
+     = Code ([ "x"; "y" ], Compound_stat (Decl_var_init ("x", Int_const 2)))
 
-let%test "assign_1" =
+let%test "assign" =
   let _ = "int x = 2; int y = x + 42;" |> parse |> trace in
-  Hashtbl.find mem "x" = Int 2
-  && Hashtbl.find mem "y" = Int 44
+  Hashtbl.find mem "x" = Int 2 && Hashtbl.find mem "y" = Int 44
+
+let%test "foo" =
+  "int foo(x) { int y = 2; return x + y; }\n\
+   int main () { return 1 + foo(42); } " |> parse |> eval_main = Some 45

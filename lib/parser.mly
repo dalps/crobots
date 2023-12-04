@@ -19,6 +19,7 @@
 %token COMMA ","
 %token ASSIGN "="
 %token INT_TYPE "int"
+%token RETURN "return"
 %token EOF
 
 %nonassoc below_ELSE
@@ -73,6 +74,7 @@ stat:
 | s = exp_stat { s }
 | s = compound_stat { s }
 | s = selective_stat { s }
+| s = jump_stat { s }
 
 exp_stat:
 | e = exp ";" { Exp_stat e } 
@@ -94,6 +96,9 @@ selective_stat:
 | "if" "(" e = exp ")" s = stat { If (e,s) } %prec below_ELSE
 | "if" "(" e = exp ")" s1 = stat "else" s2 = stat { If_else (e,s1,s2) }
 
+jump_stat:
+| "return" e = exp? ";" { Return_stat e }
+
 exp:
 | e = assignment_exp { e }
 
@@ -103,14 +108,14 @@ assignment_exp:
 
 additive_exp:
 | e = mult_exp { e }
-| e1 = additive_exp "+" e2 = mult_exp { Add_exp (Add, e1, e2) }
-| e1 = additive_exp "-" e2 = mult_exp { Add_exp (Sub, e1, e2) }
+| e1 = additive_exp "+" e2 = mult_exp { Binary_exp (Add, e1, e2) }
+| e1 = additive_exp "-" e2 = mult_exp { Binary_exp (Sub, e1, e2) }
 
 mult_exp:
 | e = unary_exp { e }
-| e1 = mult_exp "*" e2 = unary_exp { Mul_exp (Mul, e1, e2)}
-| e1 = mult_exp "/" e2 = unary_exp { Mul_exp (Div, e1, e2)}
-| e1 = mult_exp "%" e2 = unary_exp { Mul_exp (Mod, e1, e2)}
+| e1 = mult_exp "*" e2 = unary_exp { Binary_exp (Mul, e1, e2)}
+| e1 = mult_exp "/" e2 = unary_exp { Binary_exp (Div, e1, e2)}
+| e1 = mult_exp "%" e2 = unary_exp { Binary_exp (Mod, e1, e2)}
 
 unary_exp:
 | e = primary_exp { e }
@@ -118,6 +123,7 @@ unary_exp:
 
 primary_exp:
 | x = identifier { Var x }
+| f = identifier "(" args = separated_list(",", assignment_exp) ")" { Call_exp(f, args) }
 | n = INT_CONST { Int_const (int_of_string n) }
 | "(" e = exp ")" { e }
 

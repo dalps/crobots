@@ -29,6 +29,7 @@ rule read_token = parse
 | '=' { ASSIGN }
 | ',' { COMMA }
 | "int" { INT_TYPE }
+| "return" { RETURN }
 | id { ID (Lexing.lexeme lexbuf) }
 | int_const { INT_CONST (Lexing.lexeme lexbuf) }
 | _ { raise (Error "unexpected character") }
