@@ -19,7 +19,26 @@ let parse parser text =
 
 let parse_program = parse Parser.main
 
-let fun_of_uop = function UMinus -> ( ~- )
+let fun_of_uop = function
+  | UMinus -> ( ~- )
+
+let int_of_bool = function
+  | true -> 1
+  | false -> 0
+
+let bool_of_int = function
+  | 0 -> false
+  | _ -> true
+
+let int_and x y = (bool_of_int x && bool_of_int y) |> int_of_bool
+let int_or x y = (bool_of_int x || bool_of_int y) |> int_of_bool
+let int_xor x y = bool_of_int x != bool_of_int y |> int_of_bool
+let int_eq x y = x = y |> int_of_bool
+let int_neq x y = x <> y |> int_of_bool
+let int_gt x y = x > y |> int_of_bool
+let int_lt x y = x < y |> int_of_bool
+let int_geq x y = x >= y |> int_of_bool
+let int_leq x y = x <= y |> int_of_bool
 
 let fun_of_bop = function
   | Add -> ( + )
@@ -27,6 +46,15 @@ let fun_of_bop = function
   | Mul -> ( * )
   | Div -> ( / )
   | Mod -> ( mod )
+  | Eq -> int_eq
+  | Neq -> int_neq
+  | Gt -> int_gt
+  | Lt -> int_lt
+  | Geq -> int_geq
+  | Leq -> int_leq
+  | Land -> int_and
+  | Lor -> int_or
+  | Lxor -> int_xor
 
 exception VoidValue
 
@@ -81,14 +109,16 @@ and eval_program = function
   | Decl_fun (id, pars, s) ->
       add memory id (Code (pars, s));
       None
-  | If (e, s) ->
-      let v = eval_expr e in
-      if Option.is_none v then raise VoidValue;
-      if v = Some 0 then None else eval_program s
-  | If_else (e, s1, s2) ->
-      let v = eval_expr e in
-      if Option.is_none v then raise VoidValue;
-      if v = Some 0 then eval_program s2 else eval_program s1
+  | If (e, s) -> (
+      match eval_expr e with
+      | None -> raise VoidValue
+      | Some 0 -> None
+      | _ -> eval_program s)
+  | If_else (e, s1, s2) -> (
+      match eval_expr e with
+      | None -> raise VoidValue
+      | Some 0 -> eval_program s2
+      | _ -> eval_program s1)
   | Compound_stat s ->
       add_frame memory;
       let o = eval_program s in

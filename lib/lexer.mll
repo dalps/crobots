@@ -28,6 +28,15 @@ rule read_token = parse
 | '-' { MINUS }
 | '=' { ASSIGN }
 | ',' { COMMA }
+| "&&" { LOGICAL_AND }
+| "||" { LOGICAL_OR }
+| '^' { LOGICAL_XOR }
+| '<' { LESS_THAN }
+| '>' { GREATER_THAN }
+| "<=" { LEQ_THAN }
+| ">=" { GEQ_THAN }
+| "==" { EQUAL }
+| "!=" { NOT_EQUAL }
 | "int" { INT_TYPE }
 | "return" { RETURN }
 | id { ID (Lexing.lexeme lexbuf) }

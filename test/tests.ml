@@ -32,7 +32,10 @@ let%test "stat_list" =
   "{ 1; 2; }" |> parse_stat
   = Compound_stat (Seq (Exp_stat (Int_const 1), Exp_stat (Int_const 2)))
 
-let rec last = function [] -> None | [ x ] -> Some x | _ :: l -> last l
+let rec last = function
+  | [] -> None
+  | [ x ] -> Some x
+  | _ :: l -> last l
 
 let%test "trace1" =
   "{ if (1) { 1; 2; } else {}}" |> parse_stat |> trace |> last
@@ -69,7 +72,7 @@ let%test "foo_2" =
 let%test "factorial_wrong" =
   "
   int fact(n) { 
-    if (n) return 1;
+    if (n == 0) return 1;
     else {
       return n * fact (n-1);
     }
@@ -77,12 +80,12 @@ let%test "factorial_wrong" =
   int main () {
     return fact(4);
   }"
-  |> parse_program |> eval_main = Some 1
+  |> parse_program |> eval_main = Some 24
 
 let%test "factorial" =
   "
   int fact(n) {
-    if (n) return n * fact (n-1);
+    if (n != 0) return n * fact (n-1);
     else return 1;
   }
   int main () {
@@ -93,10 +96,12 @@ let%test "factorial" =
 let%test "factorial-ignore-expr-after-return" =
   "
   int fact(n) {
-    if (n) { return n * fact (n-1); n = 2; } 
+    int a;
+    if (a = n > 0) { return n * fact (n-1); a = 2; } 
     else return 1;
   }
   int main () {
     return fact(4);
   }"
   |> parse_program |> eval_main = Some 24
+  && find memory "a" = Int 0

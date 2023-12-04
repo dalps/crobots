@@ -20,6 +20,15 @@
 %token ASSIGN "="
 %token INT_TYPE "int"
 %token RETURN "return"
+%token LOGICAL_AND "&&" 
+%token LOGICAL_OR "||" 
+%token LOGICAL_XOR "^" 
+%token LESS_THAN "<" 
+%token GREATER_THAN ">" 
+%token LEQ_THAN "<=" 
+%token GEQ_THAN ">=" 
+%token EQUAL "==" 
+%token NOT_EQUAL "!=" 
 %token EOF
 
 %nonassoc below_ELSE
@@ -103,8 +112,32 @@ exp:
 | e = assignment_exp { e }
 
 assignment_exp:
-| e = additive_exp { e }
+| e = logical_or_exp { e }
 | x = identifier "=" e = assignment_exp { Assign_exp (x, e) }
+
+logical_or_exp:
+| e = logical_and_exp { e }
+| e1 = logical_or_exp "||" e2 = logical_and_exp { Binary_exp (Land, e1, e2) }
+
+logical_and_exp:
+| e = exclusive_or_exp { e }
+| e1 = logical_and_exp "&&" e2 = exclusive_or_exp { Binary_exp (Land, e1, e2) }
+
+exclusive_or_exp:
+| e = equality_exp { e }
+| e1 = exclusive_or_exp "^" e2 = equality_exp { Binary_exp (Lxor, e1, e2) }
+
+equality_exp:
+| e = relational_exp { e }
+| e1 = equality_exp "==" e2 = relational_exp { Binary_exp (Eq, e1, e2) }
+| e1 = equality_exp "!=" e2 = relational_exp { Binary_exp (Neq, e1, e2) }
+
+relational_exp:
+| e = additive_exp { e }
+| e1 = relational_exp "<" e2 = additive_exp { Binary_exp (Lt, e1, e2) }
+| e1 = relational_exp ">" e2 = additive_exp { Binary_exp (Gt, e1, e2) }
+| e1 = relational_exp "<=" e2 = additive_exp { Binary_exp (Leq, e1, e2) }
+| e1 = relational_exp ">=" e2 = additive_exp { Binary_exp (Geq, e1, e2) }
 
 additive_exp:
 | e = mult_exp { e }

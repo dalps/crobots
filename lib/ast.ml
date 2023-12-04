@@ -1,4 +1,19 @@
-type bop = Add | Sub | Mul | Div | Mod
+type bop =
+  | Add
+  | Sub
+  | Mul
+  | Div
+  | Mod
+  | Eq
+  | Neq
+  | Gt
+  | Lt
+  | Geq
+  | Leq
+  | Land
+  | Lor
+  | Lxor
+
 type uop = UMinus
 
 type parameters = string list
