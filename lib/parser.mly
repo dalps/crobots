@@ -30,6 +30,8 @@
 %token GEQ_THAN ">=" 
 %token EQUAL "==" 
 %token NOT_EQUAL "!=" 
+%token WHILE "while"
+%token DO "do"
 %token EOF
 
 %nonassoc below_ELSE
@@ -85,6 +87,7 @@ stat:
 | s = compound_stat { s }
 | s = selective_stat { s }
 | s = jump_stat { s }
+| s = iteration_stat { s }
 
 exp_stat:
 | e = exp ";" { Exp_stat e } 
@@ -108,6 +111,10 @@ selective_stat:
 
 jump_stat:
 | "return" e = exp? ";" { Return_stat e }
+
+iteration_stat:
+| "while" "(" e = exp ")" s = stat { While (e,s) }
+| "do" s = stat "while" "(" e = exp ")" { Seq (s, While (e, s)) }
 
 exp:
 | e = assignment_exp { e }
@@ -143,9 +150,9 @@ additive_exp:
 
 mult_exp:
 | e = unary_exp { e }
-| e1 = mult_exp "*" e2 = unary_exp { Binary_exp (Mul, e1, e2)}
-| e1 = mult_exp "/" e2 = unary_exp { Binary_exp (Div, e1, e2)}
-| e1 = mult_exp "%" e2 = unary_exp { Binary_exp (Mod, e1, e2)}
+| e1 = mult_exp "*" e2 = unary_exp { Binary_exp (Mul, e1, e2) }
+| e1 = mult_exp "/" e2 = unary_exp { Binary_exp (Div, e1, e2) }
+| e1 = mult_exp "%" e2 = unary_exp { Binary_exp (Mod, e1, e2) }
 
 unary_exp:
 | e = postfix_exp { e }

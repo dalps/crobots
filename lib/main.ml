@@ -127,6 +127,11 @@ and eval_program = function
       | None -> raise VoidValue
       | Some 0 -> eval_program s2
       | _ -> eval_program s1)
+  | While (e, s) as w -> (
+      match eval_expr e with
+      | None -> raise VoidValue
+      | Some 0 -> None
+      | _ -> eval_program (Seq (s, w)))
   | Compound_stat s ->
       add_frame memory;
       let o = eval_program s in

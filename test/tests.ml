@@ -114,7 +114,8 @@ let%test "prefix-incr" =
     int y = ++x;
     
     return x == 2 && y == 2;
-  }" |> parse_program |> eval_main = Some 1
+  }"
+  |> parse_program |> eval_main = Some 1
 
 let%test "postfix-decr" =
   "
@@ -122,4 +123,37 @@ let%test "postfix-decr" =
     int x = 1, y = x--;
     
     return x == 0 && y == 1;
-  }" |> parse_program |> eval_main = Some 1
+  }"
+  |> parse_program |> eval_main = Some 1
+
+let%test "factorial-iterative" =
+  "
+  int fact(n) {
+    int acc = 1;
+
+    while (n) {
+      acc = acc * n; 
+      n = n - 1;
+    }
+    
+    return acc;
+  }
+
+  int main () {
+    return fact(4);
+  }"
+  |> parse_program |> eval_main = Some 24
+  && find memory "a" = Int 0
+
+let%test "do-while" =
+  "
+  int main () {
+    int i = 1;
+    do {
+      int x = 2;
+    }
+    while (i != 1);
+
+    return x;
+  }"
+  |> parse_program |> eval_main = Some 2

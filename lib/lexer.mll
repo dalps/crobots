@@ -40,6 +40,8 @@ rule read_token = parse
 | "--" { DECR }
 | "int" { INT_TYPE }
 | "return" { RETURN }
+| "while" { WHILE }
+| "do" { DO }
 | id { ID (Lexing.lexeme lexbuf) }
 | int_const { INT_CONST (Lexing.lexeme lexbuf) }
 | _ { raise (Error "unexpected character") }

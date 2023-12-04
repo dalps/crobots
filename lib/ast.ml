@@ -31,6 +31,7 @@ type expr =
 type instruction =
   | If of expr * instruction
   | If_else of expr * instruction * instruction
+  | While of expr * instruction
   | Exp_stat of expr
   | Return_stat of expr option
   | Null_stat
@@ -40,4 +41,4 @@ type instruction =
   | Decl_fun of string * parameters * instruction
   | Seq of instruction * instruction
 
-type prog = instruction (* refactor to `instruction list` and remove `Seq` *)
+type prog = instruction
