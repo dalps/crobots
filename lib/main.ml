@@ -1,4 +1,5 @@
 open Ast
+open Memory
 
 let parse text =
   let lexbuf = Lexing.from_string text in
@@ -16,10 +17,6 @@ let parse text =
          (pos.pos_cnum - pos.pos_bol)
          errstr)
 
-type memval = Null | Int of int | Code of (parameters * instruction)
-type memory = (string, memval) Hashtbl.t
-
-let mem = Hashtbl.create 99
 let fun_of_uop = function UMinus -> ( ~- )
 
 let fun_of_bop = function
@@ -39,25 +36,25 @@ let rec eval_expr = function
   | Int_const n -> Some n
   | Var x -> (
       try
-        match Hashtbl.find mem x with
+        match find memory x with
         | Int n -> Some n
         | _ -> failwith "expected an int variable"
       with Not_found -> failwith (Printf.sprintf "'%s' undeclared" x))
   | Assign_exp (x, e) -> (
       match eval_expr e with
       | Some n ->
-          if Hashtbl.mem mem x then (
-            Hashtbl.add mem x (Int n);
+          if mem memory x then (
+            add memory x (Int n);
             Some n)
           else failwith (Printf.sprintf "'%s' undeclared" x)
       | None -> raise VoidValue)
   | Call_exp (f, es) -> (
-      match Hashtbl.find mem f with
+      match find memory f with
       | Code (pars, s) ->
           List.iter2
             (fun x e ->
               match eval_expr e with
-              | Some n -> Hashtbl.add mem x (Int n)
+              | Some n -> add memory x (Int n)
               | None -> raise VoidValue)
             pars es;
           eval_program s
@@ -73,24 +70,29 @@ let rec eval_expr = function
 
 and eval_program = function
   | Decl_var id ->
-      Hashtbl.add mem id Null;
+      add memory id Null;
       None
   | Decl_var_init (id, e) ->
       Option.bind (eval_expr e) (fun n ->
-          Hashtbl.add mem id (Int n);
+          add memory id (Int n);
           None)
   | Decl_fun (id, pars, s) ->
-      Hashtbl.add mem id (Code (pars, s));
+      add memory id (Code (pars, s));
       None
   | If (e, s) ->
-      Option.fold ~none:(raise VoidValue)
-        ~some:(fun n -> if n = 0 then None else eval_program s)
-        (eval_expr e)
+      let v = eval_expr e in
+      if Option.is_none v then raise VoidValue;
+      if v = Some 0 then None else eval_program s
   | If_else (e, s1, s2) ->
-      Option.fold ~none:(raise VoidValue)
-        ~some:(fun n -> if n = 0 then eval_program s2 else eval_program s1)
-        (eval_expr e)
-  | Compound_stat s -> eval_program s
+      let v = eval_expr e in
+      if Option.is_none v then raise VoidValue;
+      if v = Some 0 then eval_program s2 else eval_program s1
+  | Compound_stat s ->
+      add_frame memory;
+      let o = eval_program s in
+      ();
+      ignore (pop_frame memory);
+      o
   | Exp_stat e ->
       ignore (eval_expr e);
       None
@@ -112,15 +114,15 @@ exception NoRuleApplies
 
 let rec trace1 = function
   | Decl_var id ->
-      Hashtbl.add mem id Null;
+      add memory id Null;
       raise NoRuleApplies
   | Decl_var_init (id, e) ->
       let v = eval_expr e in
-      Hashtbl.add mem id (Int (Option.get v));
+      add memory id (Int (Option.get v));
       raise NoRuleApplies
   | Decl_fun (id, pars, s) ->
-      Hashtbl.add mem id (Code (pars, s));
-      List.iter (fun id -> Hashtbl.add mem id Null) pars;
+      add memory id (Code (pars, s));
+      List.iter (fun id -> add memory id Null) pars;
       raise NoRuleApplies
   | If (e, s) when eval_expr e |> Option.get = 1 -> s
   | If_else (e, s1, s2) -> if eval_expr e |> Option.get = 0 then s2 else s1
