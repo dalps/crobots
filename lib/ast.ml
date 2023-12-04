@@ -12,9 +12,10 @@ type bop =
   | Leq
   | Land
   | Lor
-  | Lxor
 
 type uop = UMinus
+
+type postfix_op = Incr | Decr
 
 type parameters = string list
 
@@ -25,6 +26,7 @@ type expr =
   | Int_const of int
   | Unary_exp of uop * expr
   | Binary_exp of bop * expr * expr
+  | Postfix_exp of postfix_op * string
 
 type instruction =
   | If of expr * instruction

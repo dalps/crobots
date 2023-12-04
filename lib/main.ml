@@ -32,7 +32,6 @@ let bool_of_int = function
 
 let int_and x y = (bool_of_int x && bool_of_int y) |> int_of_bool
 let int_or x y = (bool_of_int x || bool_of_int y) |> int_of_bool
-let int_xor x y = bool_of_int x != bool_of_int y |> int_of_bool
 let int_eq x y = x = y |> int_of_bool
 let int_neq x y = x <> y |> int_of_bool
 let int_gt x y = x > y |> int_of_bool
@@ -54,7 +53,6 @@ let fun_of_bop = function
   | Leq -> int_leq
   | Land -> int_and
   | Lor -> int_or
-  | Lxor -> int_xor
 
 exception VoidValue
 
@@ -97,6 +95,16 @@ let rec eval_expr = function
       match (eval_expr e1, eval_expr e2) with
       | Some n1, Some n2 -> Some ((fun_of_bop bop) n1 n2)
       | _ -> raise VoidValue)
+  | Postfix_exp (op, x) -> (
+      match find memory x with
+      | Int n ->
+          add memory x
+            (Int
+               (match op with
+               | Incr -> n + 1
+               | Decr -> n - 1));
+          Some n
+      | _ -> failwith "expected an int variable")
 
 and eval_program = function
   | Decl_var id ->

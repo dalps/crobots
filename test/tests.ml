@@ -105,3 +105,21 @@ let%test "factorial-ignore-expr-after-return" =
   }"
   |> parse_program |> eval_main = Some 24
   && find memory "a" = Int 0
+
+let%test "prefix-incr" =
+  "
+  int main() {
+    int x = 1;
+
+    int y = ++x;
+    
+    return x == 2 && y == 2;
+  }" |> parse_program |> eval_main = Some 1
+
+let%test "postfix-decr" =
+  "
+  int main() {
+    int x = 1, y = x--;
+    
+    return x == 0 && y == 1;
+  }" |> parse_program |> eval_main = Some 1

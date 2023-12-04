@@ -18,11 +18,12 @@
 %token SEMICOLON ";"
 %token COMMA ","
 %token ASSIGN "="
+%token INCR "++"
+%token DECR "--"
 %token INT_TYPE "int"
 %token RETURN "return"
 %token LOGICAL_AND "&&" 
 %token LOGICAL_OR "||" 
-%token LOGICAL_XOR "^" 
 %token LESS_THAN "<" 
 %token GREATER_THAN ">" 
 %token LEQ_THAN "<=" 
@@ -120,12 +121,8 @@ logical_or_exp:
 | e1 = logical_or_exp "||" e2 = logical_and_exp { Binary_exp (Land, e1, e2) }
 
 logical_and_exp:
-| e = exclusive_or_exp { e }
-| e1 = logical_and_exp "&&" e2 = exclusive_or_exp { Binary_exp (Land, e1, e2) }
-
-exclusive_or_exp:
 | e = equality_exp { e }
-| e1 = exclusive_or_exp "^" e2 = equality_exp { Binary_exp (Lxor, e1, e2) }
+| e1 = logical_and_exp "&&" e2 = equality_exp { Binary_exp (Land, e1, e2) }
 
 equality_exp:
 | e = relational_exp { e }
@@ -151,8 +148,15 @@ mult_exp:
 | e1 = mult_exp "%" e2 = unary_exp { Binary_exp (Mod, e1, e2)}
 
 unary_exp:
+| e = postfix_exp { e }
+| "-" e = unary_exp { Unary_exp (UMinus, e) }
+| "--" x = identifier { Assign_exp (x, Binary_exp (Add, Var x, Int_const 1) ) }
+| "++" x = identifier { Assign_exp (x, Binary_exp (Add, Var x, Int_const 1) ) }
+
+postfix_exp:
 | e = primary_exp { e }
-| "-" e = unary_exp { Unary_exp ((UMinus), e)}
+| x = identifier "++" { Postfix_exp (Incr, x) }
+| x = identifier "--" { Postfix_exp (Decr, x) }
 
 primary_exp:
 | x = identifier { Var x }
