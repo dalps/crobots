@@ -1,9 +1,9 @@
 open Ast
 open Memory
 
-let parse text =
+let parse parser text =
   let lexbuf = Lexing.from_string text in
-  try Parser.main Lexer.read_token lexbuf
+  try parser Lexer.read_token lexbuf
   with exn ->
     let pos = lexbuf.lex_curr_p
     and errstr =
@@ -16,6 +16,8 @@ let parse text =
       (Printf.sprintf "line %d, column %d: %s%!" pos.pos_lnum
          (pos.pos_cnum - pos.pos_bol)
          errstr)
+
+let parse_program = parse Parser.main
 
 let fun_of_uop = function UMinus -> ( ~- )
 

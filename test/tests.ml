@@ -3,19 +3,16 @@ open Ast
 open Main
 open Memory
 
-let parse_expr line : expr =
-  let linebuf = Lexing.from_string line in
-  Parser.test_exp Lexer.read_token linebuf
-
-let parse_stat line : instruction =
-  let linebuf = Lexing.from_string line in
-  Parser.test_stat Lexer.read_token linebuf
+let parse_expr = parse Parser.test_exp
+let parse_stat = parse Parser.test_stat
 
 let%test "int_const1" = "1" |> parse_expr = Int_const 1
 let%test "int_const2" = "01" |> parse_expr = Int_const 1
 
-let%test "if_no_else " =
+let%test "if_else " =
   "if (1) {} else {}" |> parse_stat = If_else (Int_const 1, Null_stat, Null_stat)
+
+let%test "if_no_else " = "if (1) {}" |> parse_stat = If (Int_const 1, Null_stat)
 
 let%test "dangling_else" =
   "if (1) if (0) {} else {}" |> parse_stat
@@ -42,48 +39,64 @@ let%test "trace1" =
   = Some (Exp_stat (Int_const 2))
 
 let%test "decl_1" =
-  let _ = "int x = 2; int y;" |> parse |> trace in
+  let _ = "int x = 2; int y;" |> parse_program |> trace in
   find memory "x" = Int 2 && find memory "y" = Null
 
 let%test "decl_2" =
-  let _ = "int foo (x, y) { int x = 2; }" |> parse |> trace in
+  let _ = "int foo (x, y) { int x = 2; }" |> parse_program |> trace in
   find memory "x" = Null
   && find memory "y" = Null
   && find memory "foo"
      = Code ([ "x"; "y" ], Compound_stat (Decl_var_init ("x", Int_const 2)))
 
 let%test "assign" =
-  let _ = "int x = 2; int y = x + 42;" |> parse |> trace in
+  let _ = "int x = 2; int y = x + 42;" |> parse_program |> trace in
   find memory "x" = Int 2 && find memory "y" = Int 44
 
 let%test "foo_1" =
-  "int foo(x) { int y = 2; return x + y; }\n\
-  \   int main () { return 1 + foo(42); } " |> parse |> eval_main = Some 45
+  "
+  int foo(x) { int y = 2; return x + y; }
+  int main () { return 1 + foo(42); }"
+  |> parse_program |> eval_main = Some 45
 
 let%test "foo_2" =
-  "\n\
-  \  int foo(x) { int y = 2; return x + y; }\n\
-  \  int main () { return bar(3) + foo(42); }\n\
-  \  int bar(n) { return n * 2; }\n" |> parse |> eval_main = Some 50
+  "
+  int foo(x) { int y = 2; return x + y; }
+  int main () { return bar(3) + foo(42); }
+  int bar(n) { return n * 2; }"
+  |> parse_program |> eval_main = Some 50
 
 let%test "factorial_wrong" =
-  "\n\
-  \  int fact(n) { \n\
-  \    if (n) return 1;\n\
-  \    else {\n\
-  \      return n * fact (n-1);\n\
-  \    }\n\
-  \  }\n\
-  \  int main () {\n\
-  \    return fact(4);\n\
-  \  }\n" |> parse |> eval_main = Some 1
+  "
+  int fact(n) { 
+    if (n) return 1;
+    else {
+      return n * fact (n-1);
+    }
+  }
+  int main () {
+    return fact(4);
+  }"
+  |> parse_program |> eval_main = Some 1
 
 let%test "factorial" =
-  "\n\
-  \  int fact(n) {\n\
-  \    if (n) return n * fact (n-1);\n\
-  \    else return 1;\n\
-  \  }\n\
-  \  int main () {\n\
-  \    return fact(4);\n\
-  \  }\n" |> parse |> eval_main = Some 24
+  "
+  int fact(n) {
+    if (n) return n * fact (n-1);
+    else return 1;
+  }
+  int main () {
+    return fact(4);
+  }"
+  |> parse_program |> eval_main = Some 24
+
+let%test "factorial-ignore-expr-after-return" =
+  "
+  int fact(n) {
+    if (n) { return n * fact (n-1); n = 2; } 
+    else return 1;
+  }
+  int main () {
+    return fact(4);
+  }"
+  |> parse_program |> eval_main = Some 24
