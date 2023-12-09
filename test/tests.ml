@@ -1,9 +1,10 @@
 open Crobots
 open Ast
 open Main
+open Eval
 
-let parse_expr = parse Parser.test_exp
-let parse_stat = parse Parser.test_stat
+let parse_expr = parse' Parser.test_exp
+let parse_stat = parse' Parser.test_stat
 
 let%test "int_const1" = "1" |> parse_expr = Int_const 1
 let%test "int_const2" = "01" |> parse_expr = Int_const 1
@@ -40,14 +41,22 @@ let%test "foo_1" =
   "
   int foo(x) { int y = 2; return x + y; }
   int main () { return 1 + foo(42); }"
-  |> parse_program |> eval_main = Some 45
+  |> parse |> eval = Some 45
 
 let%test "foo_2" =
   "
   int foo(x) { int y = 2; return x + y; }
   int main () { return bar(3) + foo(42); }
   int bar(n) { return n * 2; }"
-  |> parse_program |> eval_main = Some 50
+  |> parse |> eval = Some 50
+
+let%test "foo_3" =
+  "
+  int foo(x) { int y = 2; return x + y; }
+  int main () { return foo(z); }
+  int z = 2;
+  "
+  |> parse |> eval = Some 4
 
 let%test "factorial_wrong" =
   "
@@ -60,7 +69,7 @@ let%test "factorial_wrong" =
   int main () {
     return fact(4);
   }"
-  |> parse_program |> eval_main = Some 24
+  |> parse |> eval = Some 24
 
 let%test "factorial" =
   "
@@ -71,7 +80,7 @@ let%test "factorial" =
   int main () {
     return fact(4);
   }"
-  |> parse_program |> eval_main = Some 24
+  |> parse |> eval = Some 24
 
 let%test "factorial-ignore-expr-after-return" =
   "
@@ -83,7 +92,7 @@ let%test "factorial-ignore-expr-after-return" =
   int main () {
     return fact(6);
   }"
-  |> parse_program |> eval_main = Some 720
+  |> parse |> eval = Some 720
 
 let%test "prefix-incr" =
   "
@@ -94,7 +103,7 @@ let%test "prefix-incr" =
     
     return x == 2 && y == 2;
   }"
-  |> parse_program |> eval_main = Some 1
+  |> parse |> eval = Some 1
 
 let%test "postfix-decr" =
   "
@@ -103,7 +112,7 @@ let%test "postfix-decr" =
     
     return x == 0 && y == 1;
   }"
-  |> parse_program |> eval_main = Some 1
+  |> parse |> eval = Some 1
 
 let%test "factorial-iterative" =
   "
@@ -121,7 +130,7 @@ let%test "factorial-iterative" =
   int main () {
     return fact(4);
   }"
-  |> parse_program |> eval_main = Some 24
+  |> parse |> eval = Some 24
 
 let%test "do-while" =
   "
@@ -135,7 +144,7 @@ let%test "do-while" =
 
     return x;
   }"
-  |> parse_program |> eval_main = Some 4
+  |> parse |> eval = Some 4
 
 let%test "do-while-shadow" =
   "
@@ -151,4 +160,4 @@ let%test "do-while-shadow" =
 
     return x;
   }"
-  |> parse_program |> eval_main = Some 2
+  |> parse |> eval = Some 2

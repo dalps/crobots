@@ -14,15 +14,9 @@ type envval = Null | Loc of loc | Fun of (parameters * instruction)
 type memory = (loc, memval) Hashtbl.t
 type environment = (ide, envval) Hashtbl.t Stack.t
 
-let memory : memory =
-  let h = Hashtbl.create 99 in
-  Hashtbl.add h 0 0;
-  h
+let memory : memory = Hashtbl.create 99
 
-let envrmt : environment =
-  let s = Stack.create () in
-  Stack.push (Hashtbl.create 99) s;
-  s
+let envrmt : environment = Stack.create ()
 
 let max_key h =
   Hashtbl.fold
@@ -50,6 +44,11 @@ let add_env env = Hashtbl.add (Stack.top env)
 let add_frame env = Stack.push (Stack.top env |> Hashtbl.copy) env
 let pop_frame = Stack.pop
 
+let init () =
+  Hashtbl.reset memory;
+  Stack.clear envrmt;
+  Stack.push (Hashtbl.create 99) envrmt
+
 let bind x n =
   match find_env envrmt x with
   | Null ->
@@ -58,7 +57,7 @@ let bind x n =
   | Loc l -> update_mem l n
   | _ -> failwith "update on functional value"
 
-let collect_garbage =
+let janitor () =
   let all_locs = Hashtbl.to_seq_keys memory |> List.of_seq in
   let used_locs =
     Hashtbl.fold
