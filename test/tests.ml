@@ -1,7 +1,6 @@
 open Crobots
 open Ast
 open Main
-open Memory
 
 let parse_expr = parse Parser.test_exp
 let parse_stat = parse Parser.test_stat
@@ -36,25 +35,6 @@ let rec last = function
   | [] -> None
   | [ x ] -> Some x
   | _ :: l -> last l
-
-let%test "trace1" =
-  "{ if (1) { 1; 2; } else {}}" |> parse_stat |> trace |> last
-  = Some (Exp_stat (Int_const 2))
-
-let%test "decl_1" =
-  let _ = "int x = 2; int y;" |> parse_program |> trace in
-  find memory "x" = Int 2 && find memory "y" = Null
-
-let%test "decl_2" =
-  let _ = "int foo (x, y) { int x = 2; }" |> parse_program |> trace in
-  find memory "x" = Null
-  && find memory "y" = Null
-  && find memory "foo"
-     = Code ([ "x"; "y" ], Compound_stat (Decl_var_init ("x", Int_const 2)))
-
-let%test "assign" =
-  let _ = "int x = 2; int y = x + 42;" |> parse_program |> trace in
-  find memory "x" = Int 2 && find memory "y" = Int 44
 
 let%test "foo_1" =
   "
@@ -101,10 +81,9 @@ let%test "factorial-ignore-expr-after-return" =
     else return 1;
   }
   int main () {
-    return fact(4);
+    return fact(6);
   }"
-  |> parse_program |> eval_main = Some 24
-  && find memory "a" = Int 0
+  |> parse_program |> eval_main = Some 720
 
 let%test "prefix-incr" =
   "
@@ -143,14 +122,30 @@ let%test "factorial-iterative" =
     return fact(4);
   }"
   |> parse_program |> eval_main = Some 24
-  && find memory "a" = Int 0
 
 let%test "do-while" =
   "
   int main () {
     int i = 1;
+    int x = 2;
     do {
-      int x = 2;
+      x = x * 2;
+    }
+    while (i != 1);
+
+    return x;
+  }"
+  |> parse_program |> eval_main = Some 4
+
+let%test "do-while-shadow" =
+  "
+  int main () {
+    int i = 1;
+    int x = 2;
+
+    do {
+      int x = 42;
+      x++;
     }
     while (i != 1);
 
