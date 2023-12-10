@@ -3,34 +3,33 @@ open Ast
 open Main
 open Eval
 
-let parse_expr = parse' Parser.test_exp
+let parse_expr = parse' Parser.test_expr
 let parse_stat = parse' Parser.test_stat
 
-let%test "int_const1" = "1" |> parse_expr = Int_const 1
-let%test "int_const2" = "01" |> parse_expr = Int_const 1
+let%test "int_const1" = "1" |> parse_expr = CONST 1
+let%test "int_const2" = "01" |> parse_expr = CONST 1
 
 let%test "if_else " =
-  "if (1) {} else {}" |> parse_stat = If_else (Int_const 1, Null_stat, Null_stat)
+  "if (1) {} else {}" |> parse_stat = IFE (CONST 1, EMPTY, EMPTY)
 
-let%test "if_no_else " = "if (1) {}" |> parse_stat = If (Int_const 1, Null_stat)
+let%test "if_no_else " = "if (1) {}" |> parse_stat = IF (CONST 1, EMPTY)
 
 let%test "dangling_else" =
   "if (1) if (0) {} else {}" |> parse_stat
-  = If (Int_const 1, If_else (Int_const 0, Null_stat, Null_stat))
+  = IF (CONST 1, IFE (CONST 0, EMPTY, EMPTY))
 
 let%test "arithexpr" =
   "1 + 2 * 3 / -(2 - 3)" |> parse_expr
-  = Binary_exp
-      ( Add,
-        Int_const 1,
-        Binary_exp
-          ( Div,
-            Binary_exp (Mul, Int_const 2, Int_const 3),
-            Unary_exp (UMinus, Binary_exp (Sub, Int_const 2, Int_const 3)) ) )
+  = BINARY_EXPR
+      ( CONST 1,
+        ADD,
+        BINARY_EXPR
+          ( BINARY_EXPR (CONST 2, MUL, CONST 3),
+            DIV,
+            UNARY_EXPR (UMINUS, BINARY_EXPR (CONST 2, SUB, CONST 3)) ) )
 
 let%test "stat_list" =
-  "{ 1; 2; }" |> parse_stat
-  = Compound_stat (Seq (Exp_stat (Int_const 1), Exp_stat (Int_const 2)))
+  "{ 1; 2; }" |> parse_stat = BLOCK (SEQ (EXPR (CONST 1), EXPR (CONST 2)))
 
 let rec last = function
   | [] -> None

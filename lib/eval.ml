@@ -2,7 +2,7 @@ open Ast
 open Memory
 
 let fun_of_uop = function
-  | UMinus -> ( ~- )
+  | UMINUS -> ( ~- )
 
 let int_of_bool = function
   | true -> 1
@@ -22,36 +22,36 @@ let int_geq x y = x >= y |> int_of_bool
 let int_leq x y = x <= y |> int_of_bool
 
 let fun_of_bop = function
-  | Add -> ( + )
-  | Sub -> ( - )
-  | Mul -> ( * )
-  | Div -> ( / )
-  | Mod -> ( mod )
-  | Eq -> int_eq
-  | Neq -> int_neq
-  | Gt -> int_gt
-  | Lt -> int_lt
-  | Geq -> int_geq
-  | Leq -> int_leq
-  | Land -> int_and
-  | Lor -> int_or
+  | ADD -> ( + )
+  | SUB -> ( - )
+  | MUL -> ( * )
+  | DIV -> ( / )
+  | MOD -> ( mod )
+  | EQ -> int_eq
+  | NEQ -> int_neq
+  | GT -> int_gt
+  | LT -> int_lt
+  | GEQ -> int_geq
+  | LEQ -> int_leq
+  | LAND -> int_and
+  | LOR -> int_or
 
 exception VoidValue
 
 let rec eval_expr = function
-  | Int_const n -> Some n
-  | Var x -> (
+  | CONST n -> Some n
+  | IDE x -> (
       match find_env envrmt x with
       | Loc l -> Some (find_mem l)
       | Null -> failwith (Printf.sprintf "variable %s declared but undefined" x)
       | _ -> failwith "expected an int variable")
-  | Assign_exp (x, e) -> (
+  | ASSIGN (x, e) -> (
       match eval_expr e with
       | Some n ->
           bind x n;
           Some n
       | None -> raise VoidValue)
-  | Call_exp (f, es) ->
+  | CALL (f, es) ->
       add_frame envrmt;
       let o =
         match find_env envrmt f with
@@ -70,22 +70,22 @@ let rec eval_expr = function
       ();
       ignore (pop_frame envrmt);
       o
-  | Unary_exp (uop, e) -> (
+  | UNARY_EXPR (uop, e) -> (
       match eval_expr e with
       | Some n -> Some ((fun_of_uop uop) n)
       | None -> raise VoidValue)
-  | Binary_exp (bop, e1, e2) -> (
+  | BINARY_EXPR (e1, bop, e2) -> (
       match (eval_expr e1, eval_expr e2) with
       | Some n1, Some n2 -> Some ((fun_of_bop bop) n1 n2)
       | _ -> raise VoidValue)
-  | Postfix_exp (op, x) -> (
+  | POSTFIX_EXPR (x, pop) -> (
       match find_env envrmt x with
       | Loc l ->
           let n = find_mem l in
           bind x
-            (match op with
-            | Incr -> n + 1
-            | Decr -> n - 1);
+            (match pop with
+            | INCR -> n + 1
+            | DECR -> n - 1);
           Some n
       | Null ->
           failwith
@@ -94,60 +94,60 @@ let rec eval_expr = function
   | _ -> None
 
 and eval_program = function
-  | Decl_var id ->
+  | VARDECL id ->
       add_env envrmt id Null;
       None
-  | Decl_var_init (id, e) -> (
+  | VARDECL_INIT (id, e) -> (
       match eval_expr e with
       | Some n ->
           add_env envrmt id Null;
           bind id n;
           None
       | None -> failwith "void initializer")
-  | Decl_fun (id, pars, s) ->
-      add_env envrmt id (Fun (pars, remove_compoundstat s));
+  | FUNDECL (id, pars, s) ->
+      add_env envrmt id (Fun (pars, remove_block s));
       None
-  | If (e, s) -> (
+  | IF (e, s) -> (
       match eval_expr e with
       | None -> raise VoidValue
       | Some 0 -> None
       | _ -> eval_program s)
-  | If_else (e, s1, s2) -> (
+  | IFE (e, s1, s2) -> (
       match eval_expr e with
       | None -> raise VoidValue
       | Some 0 -> eval_program s2
       | _ -> eval_program s1)
-  | While (e, s) ->
+  | WHILE (e, s) ->
       add_frame envrmt;
       let o =
         match eval_expr e with
         | None -> raise VoidValue
         | Some 0 -> None
-        | _ -> eval_program (Seq (s, While_exec (e, remove_compoundstat s)))
+        | _ -> eval_program (SEQ (s, WHILE_EXEC (e, remove_block s)))
       in
       ();
       ignore (pop_frame envrmt);
       o
-  | While_exec (e, s) -> (
+  | WHILE_EXEC (e, s) -> (
       match eval_expr e with
       | None -> raise VoidValue
       | Some 0 -> None
-      | _ -> eval_program (Seq (s, While_exec (e, s))))
-  | Compound_stat s ->
+      | _ -> eval_program (SEQ (s, WHILE_EXEC (e, s))))
+  | BLOCK s ->
       add_frame envrmt;
       let o = eval_program s in
       ();
       ignore (pop_frame envrmt);
       o
-  | Exp_stat e ->
+  | EXPR e ->
       ignore (eval_expr e);
       None
-  | Return_stat e | Seq (Return_stat e, _) ->
+  | RET e | SEQ (RET e, _) ->
       Option.bind e (fun e ->
           let v = eval_expr e in
           if Option.is_none v then raise VoidValue;
           v)
-  | Seq (s1, s2) ->
+  | SEQ (s1, s2) ->
       ignore (eval_program s1);
       eval_program s2
   | _ -> None
@@ -155,4 +155,4 @@ and eval_program = function
 and eval p =
   init ();
   ignore (eval_program p);
-  eval_expr (Call_exp ("main", []))
+  eval_expr (CALL ("main", []))

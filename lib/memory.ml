@@ -4,7 +4,7 @@ exception UndeclaredVariable of string
 exception UndefinedVariable of string
 
 type loc = int
-type ide = string
+type ide = identifier
 
 type memval = int
 

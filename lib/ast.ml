@@ -1,51 +1,51 @@
-type bop =
-  | Add
-  | Sub
-  | Mul
-  | Div
-  | Mod
-  | Eq
-  | Neq
-  | Gt
-  | Lt
-  | Geq
-  | Leq
-  | Land
-  | Lor
+type identifier = string
 
-type uop = UMinus
+type binary_op =
+  | ADD
+  | SUB
+  | MUL
+  | DIV
+  | MOD
+  | EQ
+  | NEQ
+  | GT
+  | LT
+  | GEQ
+  | LEQ
+  | LAND
+  | LOR
 
-type postfix_op = Incr | Decr
+type unary_op = UMINUS
 
-type parameters = string list
+type postfix_op = INCR | DECR
 
-type expr =
-  | Var of string
-  | Assign_exp of string * expr
-  | Call_exp of string * expr list
-  | Call_exec of instruction
-  | Call_ret of expr
-  | Int_const of int
-  | Unary_exp of uop * expr
-  | Binary_exp of bop * expr * expr
-  | Postfix_exp of postfix_op * string
+type parameters = identifier list
+
+type expression =
+  | IDE of identifier
+  | ASSIGN of identifier * expression
+  | CALL of identifier * expression list
+  | CALL_EXEC of instruction
+  | CONST of int
+  | UNARY_EXPR of unary_op * expression
+  | BINARY_EXPR of expression * binary_op * expression
+  | POSTFIX_EXPR of identifier * postfix_op
 
 and instruction =
-  | If of expr * instruction
-  | If_else of expr * instruction * instruction
-  | While of expr * instruction
-  | While_exec of expr * instruction
-  | Exp_stat of expr
-  | Return_stat of expr option
-  | Null_stat
-  | Compound_stat of instruction
-  | Decl_var of string
-  | Decl_var_init of string * expr
-  | Decl_fun of string * parameters * instruction
-  | Seq of instruction * instruction
+  | EMPTY
+  | IF of expression * instruction
+  | IFE of expression * instruction * instruction
+  | WHILE of expression * instruction
+  | WHILE_EXEC of expression * instruction
+  | EXPR of expression
+  | RET of expression option
+  | BLOCK of instruction
+  | VARDECL of identifier
+  | VARDECL_INIT of identifier * expression
+  | FUNDECL of identifier * parameters * instruction
+  | SEQ of instruction * instruction
 
-type prog = instruction
+type program = instruction
 
-let remove_compoundstat = function
-  | Compound_stat s -> s
-  | s -> s
+let remove_block = function
+  | BLOCK s | s -> s
