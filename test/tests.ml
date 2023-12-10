@@ -160,3 +160,19 @@ let%test "do-while-shadow" =
     return x;
   }"
   |> parse |> eval = Some 2
+
+let%test "block" =
+  "
+  int main() {
+    int y;
+    int x;
+    x = 50;
+    {
+      int x;
+      x = 40;
+      y = x+2;
+    }
+
+    return x == 50 && y == 42;
+  }"
+  |> parse |> eval = Some 1

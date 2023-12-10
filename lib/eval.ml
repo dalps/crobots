@@ -43,7 +43,6 @@ let rec eval_expr = function
   | IDE x -> (
       match find_env envrmt x with
       | Loc l -> Some (find_mem l)
-      | Null -> failwith (Printf.sprintf "variable %s declared but undefined" x)
       | _ -> failwith "expected an int variable")
   | ASSIGN (x, e) -> (
       match eval_expr e with
@@ -60,7 +59,7 @@ let rec eval_expr = function
               (fun x e ->
                 match eval_expr e with
                 | Some n ->
-                    add_env envrmt x Null;
+                    add_env envrmt x (Loc (fresh_loc ()));
                     bind x n
                 | None -> raise VoidValue)
               pars es;
@@ -87,20 +86,17 @@ let rec eval_expr = function
             | INCR -> n + 1
             | DECR -> n - 1);
           Some n
-      | Null ->
-          failwith
-            (Printf.sprintf "cannot increment/decrement undefined variable %s" x)
       | _ -> failwith "expected an int variable")
   | _ -> None
 
 and eval_program = function
   | VARDECL id ->
-      add_env envrmt id Null;
+      add_var envrmt id;
       None
   | VARDECL_INIT (id, e) -> (
       match eval_expr e with
       | Some n ->
-          add_env envrmt id Null;
+          add_var envrmt id ~init:n;
           bind id n;
           None
       | None -> failwith "void initializer")

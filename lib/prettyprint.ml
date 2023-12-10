@@ -64,7 +64,6 @@ let string_of_memory mem =
   |> String.concat "," |> spr "<%s>"
 
 let string_of_memval = function
-  | Null -> "?"
   | Loc l -> spr "[%d]" l
   | Fun _ -> "<fun>"
 

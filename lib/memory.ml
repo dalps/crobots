@@ -7,9 +7,7 @@ type loc = int
 type ide = identifier
 
 type memval = int
-
-(* Environment invariant: if a name evaluates to Loc l, then l is a valid reference in memory that evaluates to a number. A memory location cannot be reserved without being recorded in memory first together with a value. *)
-type envval = Null | Loc of loc | Fun of (parameters * instruction)
+type envval = Loc of loc | Fun of (parameters * instruction)
 
 type memory = (loc, memval) Hashtbl.t
 type environment = (ide, envval) Hashtbl.t Stack.t
@@ -30,17 +28,19 @@ let fresh_loc () = Option.value ~default:0 (max_key memory) + 1
 
 let mem_mem = Hashtbl.mem memory
 let find_mem = Hashtbl.find memory
-let add_mem n =
-  let newloc = fresh_loc () in
-  Hashtbl.add memory newloc n;
-  newloc
+let add_mem = Hashtbl.add memory
 let update_mem = Hashtbl.replace memory
 
+let get_env = Stack.top
 let mem_env env = Hashtbl.mem (Stack.top env)
 let find_env env x =
   try Hashtbl.find (Stack.top env) x
   with Not_found -> raise (UndeclaredVariable x)
 let add_env env = Hashtbl.add (Stack.top env)
+let add_var ?(init = 0) env ide =
+  let l = fresh_loc () in
+  add_mem l init;
+  add_env env ide (Loc l)
 let add_frame env = Stack.push (Stack.top env |> Hashtbl.copy) env
 let pop_frame = Stack.pop
 
@@ -51,9 +51,6 @@ let init () =
 
 let bind x n =
   match find_env envrmt x with
-  | Null ->
-      let l = add_mem n in
-      add_env envrmt x (Loc l)
   | Loc l -> update_mem l n
   | _ -> failwith "update on functional value"
 
