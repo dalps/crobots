@@ -1,3 +1,4 @@
 open Crobots.Ast;;
 open Crobots.Main;;
 open Crobots.Memory;;
+open Crobots.Prettyprint;;

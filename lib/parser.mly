@@ -107,7 +107,7 @@ let jump_stat :=
 
 let iteration_stat :=
 | "while"; "("; ~ = expr; ")"; ~ = stat; <WHILE>
-| "do"; s = stat; "while"; "("; e = expr; ")"; { SEQ (s, WHILE (e, s)) }
+| "do"; s = stat; "while"; "("; e = expr; ")"; ";"; { SEQ (s, WHILE (e, s)) }
 
 let expr :=
 | assignment_expr
