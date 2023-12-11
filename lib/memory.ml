@@ -26,33 +26,44 @@ let max_key h =
 
 let fresh_loc () = Option.value ~default:0 (max_key memory) + 1
 
-let mem_mem = Hashtbl.mem memory
 let find_mem = Hashtbl.find memory
 let add_mem = Hashtbl.add memory
 let update_mem = Hashtbl.replace memory
 
-let get_env = Stack.top
-let mem_env env = Hashtbl.mem (Stack.top env)
 let find_env env x =
   try Hashtbl.find (Stack.top env) x
   with Not_found -> raise (UndeclaredVariable x)
 let add_env env = Hashtbl.add (Stack.top env)
-let add_var ?(init = 0) env ide =
-  let l = fresh_loc () in
-  add_mem l init;
-  add_env env ide (Loc l)
-let add_frame env = Stack.push (Stack.top env |> Hashtbl.copy) env
-let pop_frame = Stack.pop
+
+let add_frame () = Stack.push (Stack.top envrmt |> Hashtbl.copy) envrmt
+let pop_frame () = Stack.pop envrmt
 
 let init () =
   Hashtbl.reset memory;
   Stack.clear envrmt;
   Stack.push (Hashtbl.create 99) envrmt
 
-let bind x n =
+let add_var ?(init = 0) ide =
+  let l = fresh_loc () in
+  add_mem l init;
+  add_env envrmt ide (Loc l)
+
+let read_var x =
+  match find_env envrmt x with
+  | Loc l -> find_mem l
+  | _ -> failwith "read_var on function"
+
+let update_var x n =
   match find_env envrmt x with
   | Loc l -> update_mem l n
-  | _ -> failwith "update on functional value"
+  | _ -> failwith "update_var on function"
+
+let add_fun ide (pars, s) = add_env envrmt ide (Fun (pars, s))
+
+let read_fun x =
+  match find_env envrmt x with
+  | Fun (pars, s) -> (pars, s)
+  | _ -> failwith "read_fun on integer"
 
 let janitor () =
   let all_locs = Hashtbl.to_seq_keys memory |> List.of_seq in
