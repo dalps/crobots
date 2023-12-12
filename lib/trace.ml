@@ -144,3 +144,23 @@ let trace s =
   let conf0 = Instr s in
   ignore (trace_instr conf0);
   trace_expr (CALL ("main", []))
+
+let rec trace_instr_st conf =
+  try
+    let env = get_env () in
+    let mem = get_mem () in
+    (env, mem, conf) :: trace_instr_st (trace1_instr conf)
+  with NoRuleApplies -> [ (get_env (), get_mem (), conf) ]
+
+and trace_expr_st e =
+  try
+    let env = get_env () in
+    let mem = get_mem () in
+    (env, mem, e) :: trace_expr_st (trace1_expr e)
+  with NoRuleApplies -> [ (get_env (), get_mem (), e) ]
+
+let trace_st s =
+  init ();
+  let conf0 = Instr s in
+  ignore (trace_instr conf0);
+  trace_expr_st (CALL ("main", []))

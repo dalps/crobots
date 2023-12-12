@@ -6,3 +6,5 @@ open Crobots.Eval;;
 open Crobots.Trace;;
 
 let print_trace p = p |> parse |> trace |> string_of_trace |> print_endline;;
+
+let print_trace_st p = p |> parse |> trace_st |> string_of_trace_st |> print_endline;;

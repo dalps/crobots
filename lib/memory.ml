@@ -26,10 +26,12 @@ let max_key h =
 
 let fresh_loc () = Option.value ~default:0 (max_key memory) + 1
 
+let get_mem () = Hashtbl.copy memory
 let find_mem = Hashtbl.find memory
 let add_mem = Hashtbl.add memory
 let update_mem = Hashtbl.replace memory
 
+let get_env () = Hashtbl.copy (Stack.top envrmt)
 let find_env env x =
   try Hashtbl.find (Stack.top env) x
   with Not_found -> raise (UndeclaredVariable x)

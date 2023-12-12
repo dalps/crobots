@@ -62,15 +62,33 @@ and string_of_instr = function
 
 let string_of_memory mem =
   Hashtbl.fold (fun l v acc -> spr "%d/%d" l v :: acc) mem []
-  |> String.concat "," |> spr "<%s>"
+  |> String.concat ", " |> spr "[%s]"
 
 let string_of_memval = function
-  | Loc l -> spr "[%d]" l
+  | Loc l -> spr "%d" l
   | Fun _ -> "<fun>"
 
+let rec remove_duplicates s =
+  match Seq.uncons s with
+  | None -> Seq.empty
+  | Some ((x, v), s') ->
+      let s' = Seq.drop_while (fun (y, _) -> y = x) s' in
+      Seq.cons (x, v) (remove_duplicates s')
+
 let string_of_envrmt env =
-  Hashtbl.fold (fun x v acc -> spr "%s/%s" x (string_of_memval v) :: acc) env []
-  |> String.concat "," |> spr "<%s>"
+  let s = Hashtbl.to_seq env |> remove_duplicates in
+  Seq.fold_left
+    (fun acc (x, v) -> spr "%s/%s" x (string_of_memval v) :: acc)
+    [] s
+  |> String.concat ", " |> spr "{%s}"
 
 let string_of_trace es =
   List.map (fun e -> spr "%s" (string_of_expr e)) es |> String.concat "\n"
+
+let string_of_trace_st es =
+  List.map
+    (fun (env, mem, e) ->
+      spr "%s %s %s" (string_of_expr e) (string_of_envrmt env)
+        (string_of_memory mem))
+    es
+  |> String.concat "\n"
