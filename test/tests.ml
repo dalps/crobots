@@ -235,3 +235,35 @@ let%test "many-args-trace" =
     return foo(8 + a,a,3/a,42 + a * 0);
   }"
   |> parse |> trace |> last = CONST 422
+
+let%test "fact-iterative-trace" =
+  "
+  int fact(n) {
+    int acc = 1;
+
+    while (n) {
+      acc = acc * n; 
+      n = n - 1;
+    }
+    
+    return acc;
+  }
+
+  int main () {
+    return fact(4);
+  }"
+  |> parse |> trace |> last = CONST 24
+
+let%test "do-while-trace" =
+  "
+  int main () {
+    int i = 1;
+    int x = 2;
+    do {
+      x = x * 2;
+    }
+    while (i != 1);
+
+    return x;
+  }"
+  |> parse |> trace |> last = CONST 4

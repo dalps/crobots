@@ -36,8 +36,8 @@ and instruction =
   | EMPTY
   | IF of expression * instruction
   | IFE of expression * instruction * instruction
-  | WHILE of expression * instruction
-  | WHILE_EXEC of expression * instruction
+  | WHILE of expression * instruction * expression
+  | WHILE_EXEC of expression * instruction * expression
   | EXPR of expression
   | RET of expression option
   | BLOCK of instruction

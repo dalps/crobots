@@ -87,24 +87,24 @@ and trace1_instr = function
           | e ->
               let e' = trace1_expr e in
               Instr (IFE (e', s1, s2)))
-      | WHILE (e, s) -> (
+      | WHILE (e, s, g) -> (
           match e with
           | CONST 0 -> St
           | CONST _ ->
               add_frame ();
-              Instr (WHILE_EXEC (e, s))
+              Instr (SEQ (s, WHILE_EXEC (g, remove_block s, g)))
           | e ->
               let e' = trace1_expr e in
-              Instr (WHILE (e', s)))
-      | WHILE_EXEC (e, s) -> (
+              Instr (WHILE (e', s, g)))
+      | WHILE_EXEC (e, s, g) -> (
           match e with
           | CONST 0 ->
               ignore (pop_frame ());
               St
-          | CONST _ -> Instr (WHILE_EXEC (e, s))
+          | CONST _ -> Instr (SEQ (s, WHILE_EXEC (g, s, g)))
           | e ->
               let e' = trace1_expr e in
-              Instr (WHILE (e', s)))
+              Instr (WHILE (e', s, g)))
       | BLOCK s ->
           add_frame ();
           Instr (BLOCK_EXEC s)
@@ -117,7 +117,9 @@ and trace1_instr = function
       | RET o ->
           Option.fold o ~none:St ~some:(fun e ->
               match e with
-              | CONST n -> Ret n
+              | CONST n ->
+                  ignore (pop_frame ());
+                  Ret n
               | e ->
                   let e' = trace1_expr e in
                   Instr (RET (Some e')))

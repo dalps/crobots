@@ -56,7 +56,7 @@ let external_decl :=
 
 let function_definition :=
 | type_spec; ~ = declarator; "("; ~ = separated_list(",", declarator); ")";
-  ~ = compound_stat; <FUNDECL>
+  "{"; ~ = decl_or_stat_list; "}"; <FUNDECL>
 
 let decl := 
 | type_spec; ~ = init_declarator_list; ";"; <>
@@ -106,8 +106,8 @@ let jump_stat :=
 | "return"; ~ = expr?; ";"; <RET>
 
 let iteration_stat :=
-| "while"; "("; ~ = expr; ")"; ~ = stat; <WHILE>
-| "do"; s = stat; "while"; "("; e = expr; ")"; ";"; { SEQ (s, WHILE (e, s)) }
+| "while"; "("; e = expr; ")"; s = stat; { WHILE (e, s, e) }
+| "do"; s = stat; "while"; "("; e = expr; ")"; ";"; { SEQ (s, WHILE (e, s, e)) }
 
 let expr :=
 | assignment_expr
