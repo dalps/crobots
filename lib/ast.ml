@@ -22,6 +22,7 @@ type postfix_op = INCR | DECR
 type parameters = identifier list
 
 type expression =
+  | NIL
   | IDE of identifier
   | ASSIGN of identifier * expression
   | CALL of identifier * expression list
@@ -40,6 +41,7 @@ and instruction =
   | EXPR of expression
   | RET of expression option
   | BLOCK of instruction
+  | BLOCK_EXEC of instruction
   | VARDECL of identifier
   | VARDECL_INIT of identifier * expression
   | FUNDECL of identifier * parameters * instruction

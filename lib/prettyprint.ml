@@ -27,11 +27,12 @@ let string_of_postfix_op = function
   | DECR -> "--"
 
 let rec string_of_expr = function
+  | NIL -> "nil"
   | IDE x -> x
   | ASSIGN (x, e) -> spr "%s = %s" x (string_of_expr e)
   | CALL (x, es) ->
       spr "%s(%s)" x (String.concat "," (List.map string_of_expr es))
-  | CALL_EXEC s -> spr "exec: %s" (string_of_instr s)
+  | CALL_EXEC s -> spr "<exec: %s>" (string_of_instr s)
   | CONST n -> spr "%d" n
   | UNARY_EXPR (uop, e) -> spr "%s%s" (string_of_uop uop) (string_of_expr e)
   | BINARY_EXPR (e1, bop, e2) ->
@@ -52,7 +53,7 @@ and string_of_instr = function
   | RET e ->
       spr "return %s;"
         (Option.fold ~none:"" ~some:(fun e -> string_of_expr e) e)
-  | BLOCK s -> spr "{ %s }" (string_of_instr s)
+  | BLOCK s | BLOCK_EXEC s -> spr "{ %s }" (string_of_instr s)
   | VARDECL x -> spr "int %s;" x
   | VARDECL_INIT (x, e) -> spr "int %s = %s;" x (string_of_expr e)
   | FUNDECL (x, pars, s) ->
@@ -70,3 +71,6 @@ let string_of_memval = function
 let string_of_envrmt env =
   Hashtbl.fold (fun x v acc -> spr "%s/%s" x (string_of_memval v) :: acc) env []
   |> String.concat "," |> spr "<%s>"
+
+let string_of_trace es =
+  List.map (fun e -> spr "%s" (string_of_expr e)) es |> String.concat "\n"

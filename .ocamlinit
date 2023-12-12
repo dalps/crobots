@@ -3,3 +3,6 @@ open Crobots.Main;;
 open Crobots.Memory;;
 open Crobots.Prettyprint;;
 open Crobots.Eval;;
+open Crobots.Trace;;
+
+let print_trace p = p |> parse |> trace |> string_of_trace |> print_endline;;

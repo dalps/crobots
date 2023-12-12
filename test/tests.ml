@@ -2,6 +2,7 @@ open Crobots
 open Ast
 open Main
 open Eval
+open Trace
 
 let parse_expr = parse' Parser.test_expr
 let parse_stat = parse' Parser.test_stat
@@ -32,8 +33,8 @@ let%test "stat_list" =
   "{ 1; 2; }" |> parse_stat = BLOCK (SEQ (EXPR (CONST 1), EXPR (CONST 2)))
 
 let rec last = function
-  | [] -> None
-  | [ x ] -> Some x
+  | [] -> failwith "last on empty list"
+  | [ x ] -> x
   | _ :: l -> last l
 
 let%test "foo_1" =
@@ -176,3 +177,61 @@ let%test "block" =
     return x == 50 && y == 42;
   }"
   |> parse |> eval = Some 1
+
+let%test "many-args" =
+  "
+  int foo(w,x,y,z) { return w * x + y * z; }
+  int main() {
+    int a = 2;
+    return foo(10,a,3/a,42);
+  }"
+  |> parse |> eval = Some 62
+
+let%test "many-args2" =
+  "
+  int foo(w,x,y,z) { return x * y + w * z; }
+  int main() {
+    int a = 2;
+    return foo(10,a,3/a,42);
+  }"
+  |> parse |> eval = Some 422
+
+let%test "many-args3" =
+  "
+  int foo(w,x,y,z) { return x * y + w * z; }
+  int main() {
+    int a = 2;
+    return foo(8 + a,a,3/a,42 + a * 0);
+  }"
+  |> parse |> eval = Some 422
+
+let%test "side-effect" =
+  "
+  int x;
+  int foo() { --x; }
+  int main() {
+    x = 42;
+    foo();
+    return x;
+  }"
+  |> parse |> eval = Some 41
+
+let%test "side-effect-trace" =
+  "
+  int x;
+  int foo() { --x; }
+  int main() {
+    x = 42;
+    foo();
+    return x;
+  }"
+  |> parse |> trace |> last = CONST 41
+
+let%test "many-args-trace" =
+  "
+  int foo(w,x,y,z) { return x * y + w * z; }
+  int main() {
+    int a = 2;
+    return foo(8 + a,a,3/a,42 + a * 0);
+  }"
+  |> parse |> trace |> last = CONST 422
