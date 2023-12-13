@@ -236,6 +236,17 @@ let%test "many-args-trace" =
   }"
   |> parse |> trace |> last = CONST 422
 
+let%test "fun-no-shadow" =
+  "
+  int foo(w,x,y,z) { return x * y + w * z; }
+  int main() {
+    int w = 2;
+    int y = w;
+    int z = foo(8 + w,w,3/w,42 + w * 0);
+    return w == 2 && y == 2 && z == 422;
+  }"
+  |> parse |> trace |> last = CONST 1
+
 let%test "fact-iterative-trace" =
   "
   int fact(n) {
@@ -267,3 +278,35 @@ let%test "do-while-trace" =
     return x;
   }"
   |> parse |> trace |> last = CONST 4
+
+let%test "exit-on-return" =
+  "
+  int main() {
+    int x = 20;
+
+    {
+      int y;
+      y = --x;
+      return y;
+    } 
+    
+    x = 42;
+    return x;
+  }"
+  |> parse |> trace |> last = CONST 19
+
+let%test "foo21" =
+  "
+  int foo(x, y) {
+    {
+      y = y + --x;
+      return y;
+    } 
+  }
+
+  int main() {
+    int x = 20;
+
+    return x == 20 && foo(x,3) == 22;
+  }"
+  |> parse |> trace |> last = CONST 1

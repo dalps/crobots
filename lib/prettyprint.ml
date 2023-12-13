@@ -45,7 +45,7 @@ and string_of_instr = function
   | IFE (e, s1, s2) ->
       spr "if (%s) %s else %s" (string_of_expr e) (string_of_instr s1)
         (string_of_instr s2)
-  | WHILE (e, s, _) | WHILE_EXEC (e, s, _) ->
+  | WHILE (e, s) | WHILE_EXEC (e, s, _) ->
       spr "while (%s) %s" (string_of_expr e) (string_of_instr s)
   | SEQ (s, WHILE_EXEC (e, _, _)) ->
       spr "do %s while (%s);" (string_of_instr s) (string_of_expr e)
