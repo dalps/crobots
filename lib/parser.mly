@@ -100,7 +100,7 @@ let decl_or_stat :=
 
 let selective_stat :=
 | "if"; "("; ~ = expr; ")"; ~ = stat; <IF> %prec below_ELSE
-| "if"; "("; e = expr; ")"; s1 = stat; "else"; s2 = stat; { IFE (e, s1, s2) }
+| "if"; "("; ~ = expr; ")"; s1 = stat; "else"; s2 = stat; <IFE>
 
 let jump_stat :=
 | "return"; ~ = expr?; ";"; <RET>
@@ -118,7 +118,7 @@ let assignment_expr :=
 
 let binary_expr :=
 | unary_expr
-| e1 = binary_expr; op = binary_op; e2 = binary_expr; { BINARY_EXPR (e1, op, e2) }
+| e1 = binary_expr; ~ = binary_op; e2 = binary_expr; <BINARY_EXPR>
 
 let unary_expr :=
 | postfix_expr

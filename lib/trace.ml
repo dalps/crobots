@@ -63,7 +63,7 @@ and trace1_instr = function
           let e' = trace1_expr e in
           Instr (VARDECL_INIT (id, e'))
       | FUNDECL (id, pars, s) ->
-          add_fun id (pars, remove_block s);
+          add_fun id (pars, s);
           St
       | IF (CONST 0, _) -> St
       | IF (CONST _, s) -> Instr s

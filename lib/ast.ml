@@ -48,6 +48,3 @@ and instruction =
   | SEQ of instruction * instruction
 
 type program = instruction
-
-let remove_block = function
-  | BLOCK s | s -> s

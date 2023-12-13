@@ -59,7 +59,6 @@ let rec eval_expr = function
           pars es;
         eval_program s
       in
-      ();
       ignore (pop_frame ());
       o
   | UNARY_EXPR (uop, e) -> (
@@ -90,7 +89,7 @@ and eval_program = function
           None
       | None -> failwith "void initializer")
   | FUNDECL (id, pars, s) ->
-      add_fun id (pars, remove_block s);
+      add_fun id (pars, s);
       None
   | IF (e, s) -> (
       match eval_expr e with
@@ -102,26 +101,14 @@ and eval_program = function
       | None -> raise VoidValue
       | Some 0 -> eval_program s2
       | _ -> eval_program s1)
-  | WHILE (e, s) ->
-      add_frame ();
-      let o =
-        match eval_expr e with
-        | None -> raise VoidValue
-        | Some 0 -> None
-        | _ -> eval_program (SEQ (s, WHILE_EXEC (e, remove_block s, e)))
-      in
-      ();
-      ignore (pop_frame ());
-      o
-  | WHILE_EXEC (e, s, g) -> (
+  | WHILE (e, s) | WHILE_EXEC (e, s, _) -> (
       match eval_expr e with
       | None -> raise VoidValue
       | Some 0 -> None
-      | _ -> eval_program (SEQ (s, WHILE_EXEC (e, s, g))))
+      | _ -> eval_program (SEQ (s, WHILE_EXEC (e, s, e))))
   | BLOCK s ->
       add_frame ();
       let o = eval_program s in
-      ();
       ignore (pop_frame ());
       o
   | EXPR e ->
