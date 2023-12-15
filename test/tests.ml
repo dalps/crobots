@@ -310,3 +310,19 @@ let%test "foo21" =
     return x == 20 && foo(x,3) == 22;
   }"
   |> parse |> trace |> last = CONST 1
+
+let%test "comments" =
+  "
+  /* foo is a cool function */
+  int foo(w,x,y,z) { return x * y + w * z; }
+
+  /*
+    main is not so cool
+  */
+  int main() {
+    int w = 2; // why did i declare this
+    int y = w;
+    int z = foo(8 + w,w,3/w,42 + w * 0);
+    return w == 2 && y == 2 && z == 422; // please return 1
+  }"
+  |> parse |> trace |> last = CONST 1

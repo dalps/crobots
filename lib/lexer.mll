@@ -10,10 +10,12 @@ let letter = ['a'-'z''A'-'Z']
 let digit = ['0'-'9']
 let id = ['a'-'z'] (['_'] | letter | digit)*
 let nat = digit+
+let big_comment = "/*" [^'*''/']* "*/"
+let line_comment = "//" [^'\n']*
 
 rule read_token = parse
-| white { read_token lexbuf }
 | '\n' { Lexing.new_line lexbuf; read_token lexbuf }
+| white | big_comment | line_comment { read_token lexbuf }
 | '(' { LPAREN }
 | ')' { RPAREN }
 | '{' { LBRACE }
