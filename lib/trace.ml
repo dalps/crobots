@@ -1,22 +1,48 @@
 open Ast
 open Memory
 open Eval
+open Prettyprint
 
 exception NoRuleApplies
 
 type state = environment * memory
 type conf = St | Ret of int | Instr of instruction
 
+let args_error f n_expect n_actual =
+  failwith
+    (Printf.sprintf "%s expects %d arguments, but %d were given." f n_expect
+       n_actual)
+
+let callfun vals f =
+  match find_env envrmt f with
+  | Fun (pars, instr) -> (
+      try
+        add_frame ();
+        List.iter2
+          (fun x -> function
+            | CONST n -> add_var ~init:n x
+            | _ -> failwith "expected a value")
+          pars vals;
+        CALL_EXEC instr
+      with _ -> args_error f (List.length pars) (List.length vals))
+  | Intrinsic i -> (
+      let vals =
+        List.map
+          (function
+            | CONST n -> n
+            | _ -> failwith "needs further reduction")
+          vals
+      in
+      try
+        match apply_intrinsic vals i with
+        | None -> NIL
+        | Some n -> CONST n
+      with WrongArguments (exp, act) ->
+        args_error (string_of_intrinsic i) exp act)
+  | _ -> failwith "not a function"
+
 let rec trace_args vals f = function
-  | [] ->
-      add_frame ();
-      let pars, instr = read_fun f in
-      List.iter2
-        (fun x -> function
-          | CONST n -> add_var ~init:n x
-          | _ -> failwith "expected a value")
-        pars vals;
-      CALL_EXEC instr
+  | [] -> callfun vals f
   | (CONST _ as v) :: args' -> trace_args (vals @ [ v ]) f args'
   | e :: args' ->
       let e' = trace1_expr e in

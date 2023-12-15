@@ -57,16 +57,31 @@ and string_of_instr = function
   | VARDECL x -> spr "int %s;" x
   | VARDECL_INIT (x, e) -> spr "int %s = %s;" x (string_of_expr e)
   | FUNDECL (x, pars, s) ->
-      spr "fun %s(%s) %s" x (String.concat "," pars) (string_of_instr s)
+      spr "fun %s(%s) { %s }" x (String.concat "," pars) (string_of_instr s)
   | SEQ (s1, s2) -> spr "%s %s" (string_of_instr s1) (string_of_instr s2)
 
 let string_of_memory mem =
   Hashtbl.fold (fun l v acc -> spr "%d/%d" l v :: acc) mem []
   |> String.concat ", " |> spr "[%s]"
 
+let string_of_intrinsic = function
+  | SCAN -> "scan"
+  | CANNON -> "canon"
+  | DRIVE -> "drive"
+  | DAMAGE -> "damage"
+  | SPEED -> "speed"
+  | LOC_X -> "loc_x"
+  | LOC_Y -> "loc_y"
+  | RAND -> "rand"
+  | SQRT -> "sqrt"
+  | SIN -> "sin"
+  | COS -> "cos"
+  | TAN -> "tan"
+  | ATAN -> "atan"
+
 let string_of_memval = function
   | Loc l -> spr "%d" l
-  | Fun _ -> "<fun>"
+  | Fun _ | Intrinsic _ -> "<fun>"
 
 let rec remove_duplicates s =
   match Seq.uncons s with
@@ -78,7 +93,10 @@ let rec remove_duplicates s =
 let string_of_envrmt env =
   let s = Hashtbl.to_seq env |> remove_duplicates in
   Seq.fold_left
-    (fun acc (x, v) -> spr "%s/%s" x (string_of_memval v) :: acc)
+    (fun acc (x, v) ->
+      match v with
+      | Intrinsic _ -> acc
+      | _ -> spr "%s/%s" x (string_of_memval v) :: acc)
     [] s
   |> String.concat ", " |> spr "{%s}"
 

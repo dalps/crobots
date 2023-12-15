@@ -1,13 +1,34 @@
 open Ast
 
+exception IntrinsicOverride
+exception WrongArguments of int * int
+
 exception UndeclaredVariable of string
 exception UndefinedVariable of string
 
 type loc = int
 type ide = identifier
 
+type intrinsic =
+  | SCAN
+  | CANNON
+  | DRIVE
+  | DAMAGE
+  | SPEED
+  | LOC_X
+  | LOC_Y
+  | RAND
+  | SQRT
+  | SIN
+  | COS
+  | TAN
+  | ATAN
+
 type memval = int
-type envval = Loc of loc | Fun of (parameters * instruction)
+type envval =
+  | Loc of loc
+  | Fun of (parameters * instruction)
+  | Intrinsic of intrinsic
 
 type memory = (loc, memval) Hashtbl.t
 type environment = (ide, envval) Hashtbl.t Stack.t
@@ -43,7 +64,20 @@ let pop_frame () = Stack.pop envrmt
 let init () =
   Hashtbl.reset memory;
   Stack.clear envrmt;
-  Stack.push (Hashtbl.create 99) envrmt
+  Stack.push (Hashtbl.create 99) envrmt;
+  add_env envrmt "scan" (Intrinsic SCAN);
+  add_env envrmt "cannon" (Intrinsic CANNON);
+  add_env envrmt "drive" (Intrinsic DRIVE);
+  add_env envrmt "damage" (Intrinsic DAMAGE);
+  add_env envrmt "speed" (Intrinsic SPEED);
+  add_env envrmt "loc_x" (Intrinsic LOC_X);
+  add_env envrmt "loc_y" (Intrinsic LOC_Y);
+  add_env envrmt "rand" (Intrinsic RAND);
+  add_env envrmt "sqrt" (Intrinsic SQRT);
+  add_env envrmt "sin" (Intrinsic SIN);
+  add_env envrmt "cos" (Intrinsic COS);
+  add_env envrmt "tan" (Intrinsic TAN);
+  add_env envrmt "atan" (Intrinsic ATAN)
 
 let add_var ?(init = 0) ide =
   let l = fresh_loc () in
@@ -60,7 +94,12 @@ let update_var x n =
   | Loc l -> update_mem l n
   | _ -> failwith "update_var on function"
 
-let add_fun ide (pars, s) = add_env envrmt ide (Fun (pars, s))
+let add_fun ide (pars, s) =
+  match ide with
+  | "scan" | "cannon" | "drive" | "damage" | "speed" | "loc_x" | "loc_y"
+  | "rand" | "sqrt" | "sin" | "cos" | "tan" | "atan" ->
+      raise IntrinsicOverride
+  | _ -> add_env envrmt ide (Fun (pars, s))
 
 let read_fun x =
   match find_env envrmt x with
@@ -80,3 +119,30 @@ let janitor () =
   List.iter
     (fun l -> if not (List.mem l used_locs) then Hashtbl.remove memory l)
     all_locs
+
+let apply0 f = function
+  | [] -> f ()
+  | l -> raise (WrongArguments (0, List.length l))
+let apply1 f = function
+  | [ x ] -> f x
+  | l -> raise (WrongArguments (1, List.length l))
+let apply2 f = function
+  | [ x; y ] -> f x y
+  | l -> raise (WrongArguments (2, List.length l))
+
+let apply_intrinsic args = function
+  | SCAN -> Some (apply2 Robot.scan args)
+  | CANNON -> Some (apply2 Robot.cannon args)
+  | DRIVE ->
+      apply2 Robot.drive args;
+      None
+  | DAMAGE -> Some (apply0 Robot.damage args)
+  | SPEED -> Some (apply0 Robot.speed args)
+  | LOC_X -> Some (apply0 Robot.loc_x args)
+  | LOC_Y -> Some (apply0 Robot.loc_y args)
+  | RAND -> Some (apply1 Robot.rand args)
+  | SQRT -> Some (apply1 Robot.sqrt args)
+  | SIN -> Some (apply1 Robot.sin args)
+  | COS -> Some (apply1 Robot.cos args)
+  | TAN -> Some (apply1 Robot.tan args)
+  | ATAN -> Some (apply1 Robot.sin args)
