@@ -1,28 +1,13 @@
 open Ast
+open Intrinsic
 
 exception IntrinsicOverride
 exception WrongArguments of int * int
 
 exception UndeclaredVariable of string
-exception UndefinedVariable of string
 
 type loc = int
 type ide = identifier
-
-type intrinsic =
-  | SCAN
-  | CANNON
-  | DRIVE
-  | DAMAGE
-  | SPEED
-  | LOC_X
-  | LOC_Y
-  | RAND
-  | SQRT
-  | SIN
-  | COS
-  | TAN
-  | ATAN
 
 type memval = int
 type envval =
@@ -119,30 +104,3 @@ let janitor () =
   List.iter
     (fun l -> if not (List.mem l used_locs) then Hashtbl.remove memory l)
     all_locs
-
-let apply0 f = function
-  | [] -> f ()
-  | l -> raise (WrongArguments (0, List.length l))
-let apply1 f = function
-  | [ x ] -> f x
-  | l -> raise (WrongArguments (1, List.length l))
-let apply2 f = function
-  | [ x; y ] -> f x y
-  | l -> raise (WrongArguments (2, List.length l))
-
-let apply_intrinsic args = function
-  | SCAN -> Some (apply2 Robot.scan args)
-  | CANNON -> Some (apply2 Robot.cannon args)
-  | DRIVE ->
-      apply2 Robot.drive args;
-      None
-  | DAMAGE -> Some (apply0 Robot.damage args)
-  | SPEED -> Some (apply0 Robot.speed args)
-  | LOC_X -> Some (apply0 Robot.loc_x args)
-  | LOC_Y -> Some (apply0 Robot.loc_y args)
-  | RAND -> Some (apply1 Robot.rand args)
-  | SQRT -> Some (apply1 Robot.sqrt args)
-  | SIN -> Some (apply1 Robot.sin args)
-  | COS -> Some (apply1 Robot.cos args)
-  | TAN -> Some (apply1 Robot.tan args)
-  | ATAN -> Some (apply1 Robot.sin args)

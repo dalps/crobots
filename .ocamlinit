@@ -2,9 +2,20 @@ open Crobots.Ast;;
 open Crobots.Main;;
 open Crobots.Memory;;
 open Crobots.Prettyprint;;
-open Crobots.Eval;;
 open Crobots.Trace;;
 
 let print_trace p = p |> parse |> trace |> string_of_trace |> print_endline;;
 
 let print_trace_st p = p |> parse |> trace_st |> string_of_trace_st |> print_endline;;
+
+init();;
+
+let s = "
+  int main() {
+    int x = 2;
+    int y = drive(200 - x,x);
+    return x;
+  }" |> parse;;
+
+let conf0 = Instr s in trace_instr conf0;;
+let e = CALL ("main", []);;

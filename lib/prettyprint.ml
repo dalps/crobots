@@ -1,5 +1,6 @@
 open Ast
 open Memory
+open Intrinsic
 open Printf
 
 let spr = sprintf

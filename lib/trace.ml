@@ -1,9 +1,39 @@
 open Ast
+open Intrinsic
+open Robot
 open Memory
-open Eval
 open Prettyprint
 
 exception NoRuleApplies
+
+exception WrongArguments of int * int
+
+let apply0 f = function
+  | [] -> f ()
+  | l -> raise (WrongArguments (0, List.length l))
+let apply1 f = function
+  | [ x ] -> f x
+  | l -> raise (WrongArguments (1, List.length l))
+let apply2 f = function
+  | [ x; y ] -> f x y
+  | l -> raise (WrongArguments (2, List.length l))
+
+let apply_intrinsic args = function
+  | SCAN -> Some (apply2 scan args)
+  | CANNON -> Some (apply2 cannon args)
+  | DRIVE ->
+      apply2 drive args;
+      None
+  | DAMAGE -> Some (apply0 damage args)
+  | SPEED -> Some (apply0 speed args)
+  | LOC_X -> Some (apply0 loc_x args)
+  | LOC_Y -> Some (apply0 loc_y args)
+  | RAND -> Some (apply1 rand args)
+  | SQRT -> Some (apply1 sqrt args)
+  | SIN -> Some (apply1 sin args)
+  | COS -> Some (apply1 cos args)
+  | TAN -> Some (apply1 tan args)
+  | ATAN -> Some (apply1 sin args)
 
 type state = environment * memory
 type conf = St | Ret of int | Instr of instruction

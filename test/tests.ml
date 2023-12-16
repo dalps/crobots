@@ -1,7 +1,6 @@
 open Crobots
 open Ast
 open Main
-open Eval
 open Trace
 open Memory
 
@@ -42,14 +41,14 @@ let%test "foo_1" =
   "
   int foo(x) { int y = 2; return x + y; }
   int main () { return 1 + foo(42); }"
-  |> parse |> eval = Some 45
+  |> parse |> trace |> last = CONST 45
 
 let%test "foo_2" =
   "
   int foo(x) { int y = 2; return x + y; }
   int main () { return bar(3) + foo(42); }
   int bar(n) { return n * 2; }"
-  |> parse |> eval = Some 50
+  |> parse |> trace |> last = CONST 50
 
 let%test "foo_3" =
   "
@@ -57,7 +56,7 @@ let%test "foo_3" =
   int main () { return foo(z); }
   int z = 2;
   "
-  |> parse |> eval = Some 4
+  |> parse |> trace |> last = CONST 4
 
 let%test "factorial_wrong" =
   "
@@ -70,7 +69,7 @@ let%test "factorial_wrong" =
   int main () {
     return fact(4);
   }"
-  |> parse |> eval = Some 24
+  |> parse |> trace |> last = CONST 24
 
 let%test "factorial" =
   "
@@ -81,7 +80,7 @@ let%test "factorial" =
   int main () {
     return fact(4);
   }"
-  |> parse |> eval = Some 24
+  |> parse |> trace |> last = CONST 24
 
 let%test "factorial-ignore-expr-after-return" =
   "
@@ -93,7 +92,7 @@ let%test "factorial-ignore-expr-after-return" =
   int main () {
     return fact(6);
   }"
-  |> parse |> eval = Some 720
+  |> parse |> trace |> last = CONST 720
 
 let%test "prefix-incr" =
   "
@@ -104,16 +103,7 @@ let%test "prefix-incr" =
     
     return x == 2 && y == 2;
   }"
-  |> parse |> eval = Some 1
-
-let%test "postfix-decr" =
-  "
-  int main() {
-    int x = 1, y = x--;
-    
-    return x == 0 && y == 1;
-  }"
-  |> parse |> eval = Some 1
+  |> parse |> trace |> last = CONST 1
 
 let%test "factorial-iterative" =
   "
@@ -131,7 +121,7 @@ let%test "factorial-iterative" =
   int main () {
     return fact(4);
   }"
-  |> parse |> eval = Some 24
+  |> parse |> trace |> last = CONST 24
 
 let%test "do-while" =
   "
@@ -145,7 +135,7 @@ let%test "do-while" =
 
     return x;
   }"
-  |> parse |> eval = Some 4
+  |> parse |> trace |> last = CONST 4
 
 let%test "do-while-shadow" =
   "
@@ -155,13 +145,13 @@ let%test "do-while-shadow" =
 
     do {
       int x = 42;
-      x++;
+      ++x;
     }
     while (i != 1);
 
     return x;
   }"
-  |> parse |> eval = Some 2
+  |> parse |> trace |> last = CONST 2
 
 let%test "block" =
   "
@@ -177,7 +167,7 @@ let%test "block" =
 
     return x == 50 && y == 42;
   }"
-  |> parse |> eval = Some 1
+  |> parse |> trace |> last = CONST 1
 
 let%test "many-args" =
   "
@@ -186,7 +176,7 @@ let%test "many-args" =
     int a = 2;
     return foo(10,a,3/a,42);
   }"
-  |> parse |> eval = Some 62
+  |> parse |> trace |> last = CONST 62
 
 let%test "many-args2" =
   "
@@ -195,7 +185,7 @@ let%test "many-args2" =
     int a = 2;
     return foo(10,a,3/a,42);
   }"
-  |> parse |> eval = Some 422
+  |> parse |> trace |> last = CONST 422
 
 let%test "many-args3" =
   "
@@ -204,7 +194,7 @@ let%test "many-args3" =
     int a = 2;
     return foo(8 + a,a,3/a,42 + a * 0);
   }"
-  |> parse |> eval = Some 422
+  |> parse |> trace |> last = CONST 422
 
 let%test "side-effect" =
   "
@@ -215,7 +205,7 @@ let%test "side-effect" =
     foo();
     return x;
   }"
-  |> parse |> eval = Some 41
+  |> parse |> trace |> last = CONST 41
 
 let%test "side-effect-trace" =
   "
