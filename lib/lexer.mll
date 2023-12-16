@@ -46,5 +46,5 @@ rule read_token = parse
 | "do" { DO }
 | id { IDE (Lexing.lexeme lexbuf) }
 | nat { CONST (Lexing.lexeme lexbuf |> int_of_string) }
-| _ { raise (Error "unexpected character") }
+| _ { raise (Error (Lexing.lexeme lexbuf)) }
 | eof { EOF }
