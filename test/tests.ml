@@ -322,8 +322,8 @@ let%test "intrinsic1" =
   "
   int main() {
     int x = rand(1000), y = rand(1000);
-    drive(200 - x,x);
     int z = (cos(60) + sin(30)) / 100000;
+    drive(200 - x,x);
     return cos(-360) == 100000 && z == 1 && x < 1000 && y < 1000;
   }"
   |> parse |> trace |> last = CONST 1
@@ -337,8 +337,8 @@ let%test "intrinsic-override-not-allowed" =
 
     int main() {
       int x = rand(1000), y = rand(1000);
-      drive(200 - x,x);
       int z = (cos(60) + sin(30)) / 100000;
+      drive(200 - x,x);
       return cos(-360) == 100000 && z == 1 && x < 1000 && y < 1000;
     }"
     |> parse |> trace |> ignore;

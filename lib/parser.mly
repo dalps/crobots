@@ -52,14 +52,18 @@ let external_decl_list :=
 
 let external_decl := 
 | function_definition
-| decl
+| declaration
 
 let function_definition :=
-| type_spec; ~ = declarator; "("; ~ = separated_list(",", declarator); ")";
-  "{"; ~ = decl_or_stat_list; "}"; <FUNDECL>
+| "int"; ~ = declarator; "("; ~ = separated_list(",", declarator); ")";
+  "{"; ~ = decl_and_stat; "}"; <FUNDECL>
 
-let decl := 
-| type_spec; ~ = init_declarator_list; ";"; <>
+let decl_list :=
+| declaration
+| ~ = declaration; ~ = decl_list; <SEQ>
+
+let declaration := 
+| "int"; ~ = init_declarator_list; ";"; <>
 
 let init_declarator_list :=
 | init_declarator
@@ -68,9 +72,6 @@ let init_declarator_list :=
 let init_declarator :=
 | ~ = declarator; <VARDECL>
 | ~ = declarator; "="; ~ = assignment_expr; <VARDECL_INIT>
-
-let type_spec :=
-| "int"
 
 let declarator :=
 | identifier
@@ -86,17 +87,18 @@ let expr_stat :=
 | ~ = expr; ";"; <EXPR>
 | ";"; { EMPTY }
 
-let compound_stat :=
-| "{"; ~ = decl_or_stat_list; "}"; <BLOCK>
-| "{"; "}"; { EMPTY }
-
-let decl_or_stat_list :=
-| decl_or_stat
-| ~ = decl_or_stat; ~ = decl_or_stat_list; <SEQ>
-
-let decl_or_stat :=
+let stat_list :=
 | stat
-| decl
+| ~ = stat; ~ = stat_list; <SEQ>
+
+let decl_and_stat :=
+| d = decl_list; s = stat_list; { SEQ (d,s) }
+| ~ = decl_list; <>
+| ~ = stat_list; <>
+
+let compound_stat :=
+| "{"; ~ = decl_and_stat; "}"; <BLOCK>
+| "{"; "}"; { EMPTY }
 
 let selective_stat :=
 | "if"; "("; ~ = expr; ")"; ~ = stat; <IF> %prec below_ELSE
@@ -121,14 +123,10 @@ let binary_expr :=
 | e1 = binary_expr; ~ = binary_op; e2 = binary_expr; <BINARY_EXPR>
 
 let unary_expr :=
-| postfix_expr
+| primary_expr
 | ~ = unary_op; ~ =unary_expr; <UNARY_EXPR>
 | "--"; x = identifier; { ASSIGN (x, BINARY_EXPR (IDE x, SUB, CONST 1)) }
 | "++"; x = identifier; { ASSIGN (x, BINARY_EXPR (IDE x, ADD, CONST 1)) }
-
-let postfix_expr :=
-| primary_expr
-| ~ = identifier; ~ = postfix_op; <POSTFIX_EXPR>
 
 let primary_expr :=
 | ~ = identifier; <IDE>
@@ -156,7 +154,3 @@ let binary_op ==
 
 let unary_op ==
 | "-"; { UMINUS }
-
-let postfix_op ==
-| "++"; { INCR }
-| "--"; { DECR }
