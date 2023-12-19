@@ -55,7 +55,7 @@ let external_decl :=
 | declaration
 
 let function_definition :=
-| "int"; ~ = declarator; "("; ~ = separated_list(",", declarator); ")";
+| ~ = identifier; "("; ~ = separated_list(",", identifier); ")";
   "{"; ~ = decl_and_stat; "}"; <FUNDECL>
 
 let decl_list :=
@@ -70,11 +70,8 @@ let init_declarator_list :=
 | ~ = init_declarator; ","; ~ = init_declarator_list; <SEQ>
 
 let init_declarator :=
-| ~ = declarator; <VARDECL>
-| ~ = declarator; "="; ~ = assignment_expr; <VARDECL_INIT>
-
-let declarator :=
-| identifier
+| ~ = identifier; <VARDECL>
+| ~ = identifier; "="; ~ = assignment_expr; <VARDECL_INIT>
 
 let stat :=
 | expr_stat
@@ -134,8 +131,7 @@ let primary_expr :=
 | ~ = "42"; <CONST>
 | "("; ~ = expr; ")"; <>
 
-let identifier :=
-| "x"
+let identifier := "x"
 
 let binary_op ==
 | "*"; { MUL }
