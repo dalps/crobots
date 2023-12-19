@@ -1,8 +1,20 @@
+open Ast
+open Memory
+
+type status = ALIVE | DEAD
+
 type t = {
+  mutable status : status;
   mutable name : string;
-  mutable loc_x : int;
-  mutable loc_y : int;
+  mutable x : int;
+  mutable y : int;
+  mutable org_x : int;
+  mutable org_y : int;
+  mutable range : int;
+  mutable last_x : int;
+  mutable last_y : int;
   mutable damage : int;
+  mutable last_damage : int;
   mutable speed : int;
   mutable last_speed : int;
   mutable d_speed : int;
@@ -11,11 +23,16 @@ type t = {
   mutable last_heading : int;
   mutable d_heading : int;
   mutable scan_degrees : int;
-  mutable reloading : bool;
-  mutable program : Ast.program;
-  mutable env : Memory.environment;
-  mutable mem : Memory.memory;
+  mutable reload : bool;
+  mutable program : program;
+  mutable ep : expression;
+  mutable env : environment;
+  mutable mem : memory;
 }
+
+val cur_robot : t
+
+val update_robot : t -> unit
 
 val scan : int -> int -> int
 (* invokes the robot's scanner, at a specified

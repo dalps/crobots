@@ -1,6 +1,7 @@
 open Ast
 open Memory
 open Intrinsic
+open Robot
 open Printf
 
 let spr = sprintf
@@ -111,3 +112,7 @@ let string_of_trace_st es =
         (string_of_memory mem))
     es
   |> String.concat "\n"
+
+let string_of_robot (r : Robot.t) =
+  spr "x: %3d, y: %3d, sp: %3d, dsp: %3d, acc: %3d, hd: %3d, dmg: %3d" r.x r.y r.speed r.d_speed
+    r.accel r.heading r.damage

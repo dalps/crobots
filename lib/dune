@@ -1,6 +1,5 @@
 (library
- (name crobots)
- (libraries game))
+ (name crobots))
 
 (ocamllex lexer)
 

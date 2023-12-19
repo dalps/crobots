@@ -33,7 +33,7 @@ let apply_intrinsic args = function
   | SIN -> Some (apply1 sin args)
   | COS -> Some (apply1 cos args)
   | TAN -> Some (apply1 tan args)
-  | ATAN -> Some (apply1 sin args)
+  | ATAN -> Some (apply1 atan args)
 
 type state = environment * memory
 type conf = St | Ret of int | Instr of instruction
@@ -164,7 +164,7 @@ and trace1_instr = function
           | Instr s1' -> Instr (SEQ (s1', s2))
           | St -> Instr s2
           | Ret n -> Ret n)
-      | _ -> raise NoRuleApplies)
+      | _ -> St)
 
 let rec trace_instr conf =
   try conf :: trace_instr (trace1_instr conf) with NoRuleApplies -> [ conf ]
