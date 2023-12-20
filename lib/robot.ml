@@ -61,12 +61,13 @@ let init () =
     scan_degrees = 0;
     reload = false;
     program = EMPTY;
-    ep = NIL;
+    ep = CALL ("main", []);
     env = Stack.create ();
     mem = Hashtbl.create 0;
   }
 
-let cur_robot = init ()
+let cur_robot = ref (init ())
+let all_robots = ref [| init () |]
 
 let degree_of_int d = abs d mod 360
 let perc_of_int n = max 0 n |> min 100
@@ -75,13 +76,13 @@ let scan = ( + )
 let cannon _ _ = 0
 
 let drive degree speed =
-  cur_robot.d_heading <- degree_of_int degree;
-  cur_robot.d_speed <- perc_of_int speed
+  !cur_robot.d_heading <- degree_of_int degree;
+  !cur_robot.d_speed <- perc_of_int speed
 
-let damage () = cur_robot.damage
-let speed () = cur_robot.speed
-let loc_x () = cur_robot.x
-let loc_y () = cur_robot.y
+let damage () = !cur_robot.damage
+let speed () = !cur_robot.speed
+let loc_x () = !cur_robot.x
+let loc_y () = !cur_robot.y
 
 let rand = Random.int
 let sqrt x = abs x |> float_of_int |> Float.sqrt |> int_of_float
@@ -163,3 +164,5 @@ let update_robot (r : t) =
         r.d_speed <- 0;
         r.damage <- r.damage + collision
     | _ -> ())
+
+let update_all_robots = Array.iter update_robot

@@ -3,7 +3,6 @@ open Intrinsic
 
 exception IntrinsicOverride
 exception WrongArguments of int * int
-
 exception UndeclaredVariable of string
 
 type loc = int
@@ -18,10 +17,6 @@ type envval =
 type memory = (loc, memval) Hashtbl.t
 type environment = (ide, envval) Hashtbl.t Stack.t
 
-let memory : memory = Hashtbl.create 99
-
-let envrmt : environment = Stack.create ()
-
 let max_key h =
   Hashtbl.fold
     (fun k _ m ->
@@ -30,77 +25,79 @@ let max_key h =
       | Some m -> Some (max k m))
     h None
 
-let fresh_loc () = Option.value ~default:0 (max_key memory) + 1
+let fresh_loc mem = Option.value ~default:0 (max_key mem) + 1
 
-let get_mem () = Hashtbl.copy memory
-let find_mem = Hashtbl.find memory
-let add_mem = Hashtbl.add memory
-let update_mem = Hashtbl.replace memory
+let get_mem = Hashtbl.copy
+let find_mem = Hashtbl.find
+let add_mem = Hashtbl.add
+let update_mem = Hashtbl.replace
 
-let get_env () = Hashtbl.copy (Stack.top envrmt)
+let get_env env = Hashtbl.copy (Stack.top env)
 let find_env env x =
   try Hashtbl.find (Stack.top env) x
   with Not_found -> raise (UndeclaredVariable x)
 let add_env env = Hashtbl.add (Stack.top env)
 
-let add_frame () = Stack.push (Stack.top envrmt |> Hashtbl.copy) envrmt
-let pop_frame () = Stack.pop envrmt
+let add_frame env = Stack.push (Stack.top env |> Hashtbl.copy) env
+let pop_frame env = Stack.pop env
 
-let init () =
-  Hashtbl.reset memory;
-  Stack.clear envrmt;
-  Stack.push (Hashtbl.create 99) envrmt;
-  add_env envrmt "scan" (Intrinsic SCAN);
-  add_env envrmt "cannon" (Intrinsic CANNON);
-  add_env envrmt "drive" (Intrinsic DRIVE);
-  add_env envrmt "damage" (Intrinsic DAMAGE);
-  add_env envrmt "speed" (Intrinsic SPEED);
-  add_env envrmt "loc_x" (Intrinsic LOC_X);
-  add_env envrmt "loc_y" (Intrinsic LOC_Y);
-  add_env envrmt "rand" (Intrinsic RAND);
-  add_env envrmt "sqrt" (Intrinsic SQRT);
-  add_env envrmt "sin" (Intrinsic SIN);
-  add_env envrmt "cos" (Intrinsic COS);
-  add_env envrmt "tan" (Intrinsic TAN);
-  add_env envrmt "atan" (Intrinsic ATAN)
+let init_stack () =
+  let env = Stack.create () in
+  Stack.push (Hashtbl.create 99) env;
+  add_env env "scan" (Intrinsic SCAN);
+  add_env env "cannon" (Intrinsic CANNON);
+  add_env env "drive" (Intrinsic DRIVE);
+  add_env env "damage" (Intrinsic DAMAGE);
+  add_env env "speed" (Intrinsic SPEED);
+  add_env env "loc_x" (Intrinsic LOC_X);
+  add_env env "loc_y" (Intrinsic LOC_Y);
+  add_env env "rand" (Intrinsic RAND);
+  add_env env "sqrt" (Intrinsic SQRT);
+  add_env env "sin" (Intrinsic SIN);
+  add_env env "cos" (Intrinsic COS);
+  add_env env "tan" (Intrinsic TAN);
+  add_env env "atan" (Intrinsic ATAN);
+  env
 
-let add_var ?(init = 0) ide =
-  let l = fresh_loc () in
-  add_mem l init;
-  add_env envrmt ide (Loc l)
+let init_memory () = Hashtbl.create 99
 
-let read_var x =
-  match find_env envrmt x with
-  | Loc l -> find_mem l
+let add_var ?(init = 0) env mem ide =
+  let l = fresh_loc mem in
+  add_mem mem l init;
+  add_env env ide (Loc l)
+
+let read_var env mem x =
+  match find_env env x with
+  | Loc l -> find_mem mem l
   | _ -> failwith "read_var on function"
 
-let update_var x n =
-  match find_env envrmt x with
-  | Loc l -> update_mem l n
+let update_var env mem x n =
+  match find_env env x with
+  | Loc l -> update_mem mem l n
   | _ -> failwith "update_var on function"
 
-let add_fun ide (pars, s) =
+let add_fun env ide (pars, s) =
   match ide with
   | "scan" | "cannon" | "drive" | "damage" | "speed" | "loc_x" | "loc_y"
   | "rand" | "sqrt" | "sin" | "cos" | "tan" | "atan" ->
       raise IntrinsicOverride
-  | _ -> add_env envrmt ide (Fun (pars, s))
+  | _ -> add_env env ide (Fun (pars, s))
 
-let read_fun x =
-  match find_env envrmt x with
+let read_fun env x =
+  match find_env env x with
   | Fun (pars, s) -> (pars, s)
   | _ -> failwith "read_fun on integer"
 
-let janitor () =
-  let all_locs = Hashtbl.to_seq_keys memory |> List.of_seq in
+let janitor env mem =
+  let all_locs = Hashtbl.to_seq_keys mem |> List.of_seq in
   let used_locs =
     Hashtbl.fold
       (fun (_ : ide) (v : envval) seq ->
         match v with
         | Loc l -> l :: seq
         | _ -> seq)
-      (Stack.top envrmt) []
+      (Stack.top env) []
   in
   List.iter
-    (fun l -> if not (List.mem l used_locs) then Hashtbl.remove memory l)
+    (fun l -> if not (List.mem l used_locs) then Hashtbl.remove mem l)
     all_locs
