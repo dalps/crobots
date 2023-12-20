@@ -1,7 +1,7 @@
 open Ast
 open Memory
 
-let clicks = 1
+let click = 1
 let max_x = 1000
 let max_y = 1000
 let accel = 1
@@ -104,7 +104,7 @@ let atan x =
   |> (fun x -> x *. 180. /. Float.pi)
   |> int_of_float
 
-let update_robot (r : t) =
+let update_robot i (r : t) =
   (* update speed, moderated by acceleration *)
   (match compare r.speed r.d_speed with
   | n when n < 0 ->
@@ -130,21 +130,38 @@ let update_robot (r : t) =
 
   (* update distance traveled on this heading and position *)
   if r.speed > 0 then (
-    r.range <- r.range + (r.speed / clicks * robot_speed);
-    r.x <- r.org_x + (cos r.heading * (r.range / clicks) / 100000);
-    r.y <- r.org_y + (sin r.heading * (r.range / clicks) / 100000);
+    r.range <- r.range + (r.speed / click * robot_speed);
+    r.x <- r.org_x + (cos r.heading * (r.range / click) / 100000);
+    r.y <- r.org_y + (sin r.heading * (r.range / click) / 100000);
+
+    (* check for collision into another robot *)
+    Array.iteri
+      (fun i' r' ->
+        if
+          r'.status <> DEAD && i' <> i
+          && abs (r.x - r'.x) < click
+          && abs (r.y - r'.y) < click
+        then (
+          Printf.printf "%d:%s collided with %d:%s\n" i r.name i' r'.name;
+          r.speed <- 0;
+          r.d_speed <- 0;
+          r.damage <- r.damage + collision;
+          r'.speed <- 0;
+          r'.d_speed <- 0;
+          r'.damage <- r'.damage + collision))
+      !all_robots;
 
     (* check for collisions with a wall *)
     (match r.x with
     | x when x < 0 ->
-        Printf.printf "%s hit west wall\n" r.name;
+        Printf.printf "%d:%s hit west wall\n" i r.name;
         r.x <- 0;
         r.speed <- 0;
         r.d_speed <- 0;
         r.damage <- r.damage + collision
-    | x when x > max_x * clicks ->
-        Printf.printf "%s hit east wall\n" r.name;
-        r.x <- (max_x * clicks) - 1;
+    | x when x > max_x * click ->
+        Printf.printf "%d:%s hit east wall\n" i r.name;
+        r.x <- (max_x * click) - 1;
         r.speed <- 0;
         r.d_speed <- 0;
         r.damage <- r.damage + collision
@@ -152,17 +169,24 @@ let update_robot (r : t) =
 
     match r.y with
     | y when y < 0 ->
-        Printf.printf "%s hit south wall\n" r.name;
+        Printf.printf "%d:%s hit south wall\n" i r.name;
         r.y <- 0;
         r.speed <- 0;
         r.d_speed <- 0;
         r.damage <- r.damage + collision
-    | y when y > max_y * clicks ->
-        Printf.printf "%s hit north wall\n" r.name;
-        r.y <- (max_y * clicks) - 1;
+    | y when y > max_y * click ->
+        Printf.printf "%d:%s hit north wall\n" i r.name;
+        r.y <- (max_y * click) - 1;
         r.speed <- 0;
         r.d_speed <- 0;
         r.damage <- r.damage + collision
     | _ -> ())
 
-let update_all_robots = Array.iter update_robot
+let update_all_robots =
+  Array.iteri (fun i r ->
+      match (r.status, r.damage) with
+      | DEAD, _ -> ()
+      | ALIVE, d when d >= 100 ->
+          r.damage <- 100;
+          r.status <- DEAD
+      | _ -> update_robot i r)

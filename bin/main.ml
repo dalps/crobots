@@ -42,7 +42,7 @@ let loop () =
           (Option.value ~default:0 (Memory.max_key r.mem)); *)
         Memory.janitor r.env r.mem)
       !all_robots;
-    Prettyprint.string_of_all_robots !all_robots |> print_endline;
+    Printf.printf "%s\n" (Prettyprint.string_of_all_robots !all_robots);
 
     if !clock = instr_per_update then (
       update_all_robots !all_robots;
@@ -50,7 +50,7 @@ let loop () =
 
     clock := !clock + 1;
 
-    Unix.sleepf 0.01
+    (* Unix.sleepf 0.01 *)
   done
 
 let _ =
@@ -80,6 +80,12 @@ let _ =
         Trace.trace_instr (Instr p) |> ignore;
         r.name <- f;
         r.program <- p;
+        r.x <- Random.int 1000;
+        r.last_x <- r.x;
+        r.org_x <- r.x;
+        r.y <- Random.int 1000;
+        r.last_y <- r.y;
+        r.org_y <- r.y;
         r)
       programs
   in

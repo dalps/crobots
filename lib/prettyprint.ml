@@ -120,5 +120,8 @@ let string_of_robot (r : Robot.t) =
 let string_of_all_robots (rs : Robot.t array) =
   Array.to_seq rs
   |> Seq.fold_lefti
-       (fun acc i r -> acc ^ spr "(%d. %12s) %s\n" i r.name (string_of_robot r))
+       (fun acc i r ->
+         match r.status with
+         | ALIVE -> acc ^ spr "(%d. %12s) %s\n" i r.name (string_of_robot r)
+         | DEAD -> acc ^ spr "(%d. %12s) KO\n" i r.name)
        ""
