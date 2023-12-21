@@ -1,5 +1,4 @@
 open Ast
-open Intrinsic
 open Robot
 open Memory
 open Prettyprint
@@ -7,6 +6,41 @@ open Prettyprint
 exception NoRuleApplies
 
 exception WrongArguments of int * int
+
+let fun_of_uop = function
+  | UMINUS -> ( ~- )
+
+let int_of_bool = function
+  | true -> 1
+  | false -> 0
+
+let bool_of_int = function
+  | 0 -> false
+  | _ -> true
+
+let int_and x y = (bool_of_int x && bool_of_int y) |> int_of_bool
+let int_or x y = (bool_of_int x || bool_of_int y) |> int_of_bool
+let int_eq x y = x = y |> int_of_bool
+let int_neq x y = x <> y |> int_of_bool
+let int_gt x y = x > y |> int_of_bool
+let int_lt x y = x < y |> int_of_bool
+let int_geq x y = x >= y |> int_of_bool
+let int_leq x y = x <= y |> int_of_bool
+
+let fun_of_bop = function
+  | ADD -> ( + )
+  | SUB -> ( - )
+  | MUL -> ( * )
+  | DIV -> ( / )
+  | MOD -> ( mod )
+  | EQ -> int_eq
+  | NEQ -> int_neq
+  | GT -> int_gt
+  | LT -> int_lt
+  | GEQ -> int_geq
+  | LEQ -> int_leq
+  | LAND -> int_and
+  | LOR -> int_or
 
 let apply0 f = function
   | [] -> f ()

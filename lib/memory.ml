@@ -1,5 +1,4 @@
 open Ast
-open Intrinsic
 
 exception IntrinsicOverride
 exception WrongArguments of int * int

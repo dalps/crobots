@@ -1,6 +1,5 @@
 open Ast
 open Memory
-open Intrinsic
 open Robot
 open Printf
 
