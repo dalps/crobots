@@ -1,5 +1,4 @@
 open Ast
-open Intrinsic
 open Robot
 open Memory
 open Prettyprint
@@ -7,6 +6,41 @@ open Prettyprint
 exception NoRuleApplies
 
 exception WrongArguments of int * int
+
+let fun_of_uop = function
+  | UMINUS -> ( ~- )
+
+let int_of_bool = function
+  | true -> 1
+  | false -> 0
+
+let bool_of_int = function
+  | 0 -> false
+  | _ -> true
+
+let int_and x y = (bool_of_int x && bool_of_int y) |> int_of_bool
+let int_or x y = (bool_of_int x || bool_of_int y) |> int_of_bool
+let int_eq x y = x = y |> int_of_bool
+let int_neq x y = x <> y |> int_of_bool
+let int_gt x y = x > y |> int_of_bool
+let int_lt x y = x < y |> int_of_bool
+let int_geq x y = x >= y |> int_of_bool
+let int_leq x y = x <= y |> int_of_bool
+
+let fun_of_bop = function
+  | ADD -> ( + )
+  | SUB -> ( - )
+  | MUL -> ( * )
+  | DIV -> ( / )
+  | MOD -> ( mod )
+  | EQ -> int_eq
+  | NEQ -> int_neq
+  | GT -> int_gt
+  | LT -> int_lt
+  | GEQ -> int_geq
+  | LEQ -> int_leq
+  | LAND -> int_and
+  | LOR -> int_or
 
 let apply0 f = function
   | [] -> f ()
@@ -33,7 +67,7 @@ let apply_intrinsic args = function
   | SIN -> Some (apply1 sin args)
   | COS -> Some (apply1 cos args)
   | TAN -> Some (apply1 tan args)
-  | ATAN -> Some (apply1 sin args)
+  | ATAN -> Some (apply1 atan args)
 
 type state = environment * memory
 type conf = St | Ret of int | Instr of instruction
@@ -43,14 +77,15 @@ let args_error f n_expect n_actual =
     (Printf.sprintf "%s expects %d arguments, but %d were given." f n_expect
        n_actual)
 
-let callfun vals f =
-  match find_env envrmt f with
+let call_fun vals f =
+  let env, mem = (!cur_robot.env, !cur_robot.mem) in
+  match find_env env f with
   | Fun (pars, instr) -> (
       try
-        add_frame ();
+        add_frame env;
         List.iter2
           (fun x -> function
-            | CONST n -> add_var ~init:n x
+            | CONST n -> add_var env mem ~init:n x
             | _ -> failwith "expected a value")
           pars vals;
         CALL_EXEC instr
@@ -72,16 +107,18 @@ let callfun vals f =
   | _ -> failwith "not a function"
 
 let rec trace_args vals f = function
-  | [] -> callfun vals f
+  | [] -> call_fun vals f
   | (CONST _ as v) :: args' -> trace_args (vals @ [ v ]) f args'
   | e :: args' ->
       let e' = trace1_expr e in
       CALL (f, vals @ (e' :: args'))
 
-and trace1_expr = function
-  | IDE x -> CONST (read_var x)
+and trace1_expr e =
+  let env, mem = (!cur_robot.env, !cur_robot.mem) in
+  match e with
+  | IDE x -> CONST (read_var env mem x)
   | ASSIGN (x, (CONST n as e)) ->
-      update_var x n;
+      update_var env mem x n;
       e
   | ASSIGN (x, e) ->
       let e' = trace1_expr e in
@@ -105,21 +142,23 @@ and trace1_expr = function
       BINARY_EXPR (e1', bop, e2)
   | _ -> raise NoRuleApplies
 
-and trace1_instr = function
+and trace1_instr s =
+  let env, mem = (!cur_robot.env, !cur_robot.mem) in
+  match s with
   | St | Ret _ -> raise NoRuleApplies
   | Instr s -> (
       match s with
       | VARDECL id ->
-          add_var id;
+          add_var env mem id;
           St
       | VARDECL_INIT (id, CONST n) ->
-          add_var ~init:n id;
+          add_var env mem ~init:n id;
           St
       | VARDECL_INIT (id, e) ->
           let e' = trace1_expr e in
           Instr (VARDECL_INIT (id, e'))
       | FUNDECL (id, pars, s) ->
-          add_fun id (pars, s);
+          add_fun env id (pars, s);
           St
       | IF (CONST 0, _) -> St
       | IF (CONST _, s) -> Instr s
@@ -138,19 +177,19 @@ and trace1_instr = function
           let e' = trace1_expr e in
           Instr (WHILE_EXEC (e', s, g))
       | BLOCK s ->
-          add_frame ();
+          add_frame env;
           Instr (BLOCK_EXEC s) |> trace1_instr
       | BLOCK_EXEC s -> (
           match trace1_instr (Instr s) with
           | Instr s' -> Instr (BLOCK_EXEC s')
           | Ret n -> Ret n
           | St ->
-              ignore (pop_frame ());
+              ignore (pop_frame env);
               St)
       | RET o ->
           Option.fold o ~none:St ~some:(function
             | CONST n ->
-                ignore (pop_frame ());
+                ignore (pop_frame env);
                 Ret n
             | e ->
                 let e' = trace1_expr e in
@@ -164,7 +203,7 @@ and trace1_instr = function
           | Instr s1' -> Instr (SEQ (s1', s2))
           | St -> Instr s2
           | Ret n -> Ret n)
-      | _ -> raise NoRuleApplies)
+      | _ -> St)
 
 let rec trace_instr conf =
   try conf :: trace_instr (trace1_instr conf) with NoRuleApplies -> [ conf ]
@@ -173,27 +212,27 @@ and trace_expr e =
   try e :: trace_expr (trace1_expr e) with NoRuleApplies -> [ e ]
 
 let trace s =
-  init ();
+  init_memory () |> ignore;
+  init_stack () |> ignore;
   let conf0 = Instr s in
   ignore (trace_instr conf0);
   trace_expr (CALL ("main", []))
 
 let rec trace_instr_st conf =
-  try
-    let env = get_env () in
-    let mem = get_mem () in
-    (env, mem, conf) :: trace_instr_st (trace1_instr conf)
-  with NoRuleApplies -> [ (get_env (), get_mem (), conf) ]
+  let env = get_env !cur_robot.env in
+  let mem = get_mem !cur_robot.mem in
+  try (env, mem, conf) :: trace_instr_st (trace1_instr conf)
+  with NoRuleApplies -> [ (env, mem, conf) ]
 
 and trace_expr_st e =
-  try
-    let env = get_env () in
-    let mem = get_mem () in
-    (env, mem, e) :: trace_expr_st (trace1_expr e)
-  with NoRuleApplies -> [ (get_env (), get_mem (), e) ]
+  let env = get_env !cur_robot.env in
+  let mem = get_mem !cur_robot.mem in
+  try (env, mem, e) :: trace_expr_st (trace1_expr e)
+  with NoRuleApplies -> [ (env, mem, e) ]
 
 let trace_st s =
-  init ();
+  init_memory () |> ignore;
+  init_stack () |> ignore;
   let conf0 = Instr s in
   ignore (trace_instr conf0);
   trace_expr_st (CALL ("main", []))

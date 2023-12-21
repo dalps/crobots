@@ -1,4 +1,4 @@
 (executable
  (public_name crobots)
  (name main)
- (libraries crobots))
+ (libraries crobots unix))

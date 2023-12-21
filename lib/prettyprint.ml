@@ -1,6 +1,6 @@
 open Ast
 open Memory
-open Intrinsic
+open Robot
 open Printf
 
 let spr = sprintf
@@ -111,3 +111,16 @@ let string_of_trace_st es =
         (string_of_memory mem))
     es
   |> String.concat "\n"
+
+let string_of_robot (r : Robot.t) =
+  spr "x: %3d, y: %3d, sp: %3d, dsp: %3d, acc: %3d, hd: %3d, dmg: %3d, sc: %3d, rel: %3d" r.x r.y
+    r.speed r.d_speed r.accel r.heading r.damage r.scan_degrees r.reload
+
+let string_of_all_robots (rs : Robot.t array) =
+  Array.to_seq rs
+  |> Seq.fold_lefti
+       (fun acc i r ->
+         match r.status with
+         | ALIVE -> acc ^ spr "(%d. %12s) %s\n" i r.name (string_of_robot r)
+         | DEAD -> acc ^ spr "(%d. %12s) KO\n" i r.name)
+       ""
