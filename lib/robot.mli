@@ -23,11 +23,12 @@ type t = {
   mutable last_heading : int;
   mutable d_heading : int;
   mutable scan_degrees : int;
-  mutable reload : bool;
+  mutable reload : int;
   mutable program : program;
   mutable ep : expression;
   mutable env : environment;
   mutable mem : memory;
+  mutable missiles : Missile.t array;
 }
 
 val init : unit -> t

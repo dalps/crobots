@@ -38,11 +38,9 @@ let loop () =
       (fun r ->
         cur_robot := r;
         r.ep <- Trace.trace1_expr r.ep;
-        (* Printf.printf "%d(%d)\n" (Hashtbl.length r.mem)
-          (Option.value ~default:0 (Memory.max_key r.mem)); *)
         Memory.janitor r.env r.mem)
       !all_robots;
-    Printf.printf "%s\n" (Prettyprint.string_of_all_robots !all_robots);
+    Prettyprint.string_of_all_robots !all_robots |> print_endline;
 
     if !clock = instr_per_update then (
       update_all_robots !all_robots;

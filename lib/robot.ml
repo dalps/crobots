@@ -8,6 +8,10 @@ let accel = 1
 let turn_speed = 50
 let robot_speed = 1
 let collision = 5
+let mis_range = 700
+let reload_cycles = 15
+let explosion_cycles = 5
+let res_limit = 10
 
 type status = ALIVE | DEAD
 
@@ -31,11 +35,12 @@ type t = {
   mutable last_heading : int;
   mutable d_heading : int;
   mutable scan_degrees : int;
-  mutable reload : bool;
+  mutable reload : int;
   mutable program : program;
   mutable ep : expression;
   mutable env : environment;
   mutable mem : memory;
+  mutable missiles : Missile.t array;
 }
 
 let init () =
@@ -59,7 +64,8 @@ let init () =
     last_heading = 0;
     d_heading = 0;
     scan_degrees = 0;
-    reload = false;
+    reload = 0;
+    missiles = Array.init 2 (fun _ -> Missile.init ());
     program = EMPTY;
     ep = CALL ("main", []);
     env = Stack.create ();
@@ -72,8 +78,30 @@ let all_robots = ref [| init () |]
 let degree_of_int d = abs d mod 360
 let perc_of_int n = max 0 n |> min 100
 
-let scan = ( + )
-let cannon _ _ = 0
+let cannon degree range =
+  let range = if range > mis_range then mis_range else range in
+  let degree = degree_of_int degree in
+  if range >= 0 then 1
+  else if !cur_robot.reload > 0 then 0
+  else
+    try
+      Array.iter
+        (fun (m : Missile.t) ->
+          if m.status = AVAIL then (
+            !cur_robot.reload <- reload_cycles;
+            m.status <- FLYING;
+            m.beg_x <- !cur_robot.x;
+            m.beg_y <- !cur_robot.y;
+            m.cur_x <- !cur_robot.x;
+            m.cur_y <- !cur_robot.y;
+            m.heading <- degree;
+            m.range <- range * click;
+            m.travelled <- 0;
+            m.count <- explosion_cycles;
+            raise Exit))
+        !cur_robot.missiles;
+      1
+    with Exit -> 1
 
 let drive degree speed =
   !cur_robot.d_heading <- degree_of_int degree;
@@ -104,7 +132,43 @@ let atan x =
   |> (fun x -> x *. 180. /. Float.pi)
   |> int_of_float
 
+let scan degree resolution =
+  let resolution = if resolution > res_limit then res_limit else resolution in
+  let degree = degree_of_int degree in
+  let distance, close_dist = (ref 0, ref 0) in
+  !cur_robot.scan_degrees <- degree;
+  try
+    Array.iter
+      (fun r ->
+        if r = !cur_robot || r.status = DEAD then raise Exit;
+        let x = (!cur_robot.x / click) - (r.x / click) in
+        let y = (!cur_robot.y / click) - (r.y / click) in
+        let d = ref 0 in
+
+        (if x = 0 then d := if r.y > !cur_robot.y then 90 else 270
+         else
+           match (r.y < !cur_robot.y, r.x > !cur_robot.x) with
+           | true, true -> d := 360 + atan (y / x)
+           | false, true -> d := atan (y / x)
+           | _ -> d := 180 + atan (y / x));
+
+        let b =
+          if degree > resolution && degree < 360 - resolution then 0 else 180
+        in
+        let dd = degree + b in
+        let d1 = b + !d - resolution in
+        let d2 = b + !d + resolution in
+
+        if dd >= d1 && dd <= d2 then distance := sqrt ((x * x) + (y * y));
+        if !distance < !close_dist || !close_dist = 0 then
+          close_dist := !distance)
+      !all_robots;
+    !close_dist
+  with Exit -> !close_dist
+
 let update_robot i (r : t) =
+  if r.reload > 0 then r.reload <- r.reload - 1;
+
   (* update speed, moderated by acceleration *)
   (match compare r.speed r.d_speed with
   | n when n < 0 ->
