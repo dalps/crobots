@@ -3,6 +3,7 @@ open Ast
 exception IntrinsicOverride
 exception UndeclaredVariable of string
 
+let block_tag = "__block__"
 type loc = int
 type ide = identifier
 
@@ -12,9 +13,11 @@ type envval =
   | Fun of (parameters * instruction)
   | Intrinsic of intrinsic
 
+type tag = string
+
 type memory = (loc, memval) Hashtbl.t
 type environment = (ide, envval) Hashtbl.t
-type env_stack = environment Stack.t
+type env_stack = (tag * environment) Stack.t
 
 let max_key h =
   Hashtbl.fold
@@ -31,18 +34,27 @@ let find_mem = Hashtbl.find
 let add_mem = Hashtbl.add
 let update_mem = Hashtbl.replace
 
-let get_env env = Hashtbl.copy (Stack.top env)
-let find_env env x =
-  try Hashtbl.find (Stack.top env) x
-  with Not_found -> raise (UndeclaredVariable x)
-let add_env env = Hashtbl.add (Stack.top env)
-
-let add_frame env = Stack.push (Stack.top env |> Hashtbl.copy) env
+let top_tag env = Stack.top env |> fst
+let top_frame env = Stack.top env |> snd
+let add_frame t env = Stack.push (t, top_frame env |> Hashtbl.copy) env
 let pop_frame env = Stack.pop env
+
+let rec pop_blocks env =
+  let t = top_tag env in
+  if (not (Stack.is_empty env)) && String.starts_with ~prefix:block_tag t then (
+    Stack.pop env |> ignore;
+    pop_blocks env)
+  else pop_frame env
+
+let get_env env = Hashtbl.copy (top_frame env)
+let find_env env x =
+  try Hashtbl.find (top_frame env) x
+  with Not_found -> raise (UndeclaredVariable x)
+let add_env env = Hashtbl.add (top_frame env)
 
 let init_stack () =
   let env = Stack.create () in
-  Stack.push (Hashtbl.create 99) env;
+  Stack.push ("", Hashtbl.create 99) env;
   add_env env "scan" (Intrinsic SCAN);
   add_env env "cannon" (Intrinsic CANNON);
   add_env env "drive" (Intrinsic DRIVE);
@@ -95,7 +107,7 @@ let janitor env mem =
         match v with
         | Loc l -> l :: seq
         | _ -> seq)
-      (Stack.top env) []
+      (top_frame env) []
   in
   List.iter
     (fun l -> if not (List.mem l used_locs) then Hashtbl.remove mem l)

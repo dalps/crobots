@@ -80,7 +80,7 @@ let call_fun (env, mem) vals f =
   match find_env env f with
   | Fun (pars, instr) -> (
       try
-        add_frame env;
+        add_frame f env;
         List.iter2
           (fun x -> function
             | CONST n -> add_var env mem ~init:n x
@@ -170,7 +170,7 @@ and trace1_instr ((env, mem) as st) s =
           let e' = trace1_expr st e in
           Instr (WHILE_EXEC (e', s, g))
       | BLOCK s ->
-          add_frame env;
+          add_frame block_tag env;
           Instr (BLOCK_EXEC s) |> trace1_instr st
       | BLOCK_EXEC s -> (
           match trace1_instr st (Instr s) with
@@ -182,7 +182,7 @@ and trace1_instr ((env, mem) as st) s =
       | RET o ->
           Option.fold o ~none:St ~some:(function
             | CONST n ->
-                ignore (pop_frame env);
+                ignore (pop_blocks env);
                 Ret n
             | e ->
                 let e' = trace1_expr st e in
