@@ -1,7 +1,6 @@
 open Ast
 open Robot
 open Memory
-open Prettyprint
 
 exception NoRuleApplies
 
@@ -44,13 +43,13 @@ let fun_of_bop = function
 
 let apply0 f = function
   | [] -> f ()
-  | l -> raise (WrongArguments (0, List.length l))
+  | l -> raise (WrongArguments (List.length l, 0))
 let apply1 f = function
   | [ x ] -> f x
-  | l -> raise (WrongArguments (1, List.length l))
+  | l -> raise (WrongArguments (List.length l, 1))
 let apply2 f = function
   | [ x; y ] -> f x y
-  | l -> raise (WrongArguments (2, List.length l))
+  | l -> raise (WrongArguments (List.length l, 2))
 
 let apply_intrinsic args = function
   | SCAN -> Some (apply2 scan args)
@@ -88,7 +87,7 @@ let call_fun (env, mem) vals f =
             | _ -> failwith "expected a value")
           pars vals;
         CALL_EXEC instr
-      with _ -> args_error f (List.length pars) (List.length vals))
+      with _ -> raise (WrongArguments (List.length vals, List.length pars)))
   | Intrinsic i -> (
       let vals =
         List.map
@@ -97,12 +96,9 @@ let call_fun (env, mem) vals f =
             | _ -> failwith "needs further reduction")
           vals
       in
-      try
-        match apply_intrinsic vals i with
-        | None -> NIL
-        | Some n -> CONST n
-      with WrongArguments (exp, act) ->
-        args_error (string_of_intrinsic i) exp act)
+      match apply_intrinsic vals i with
+      | None -> NIL
+      | Some n -> CONST n)
   | _ -> failwith "not a function"
 
 let rec trace_args st vals f = function

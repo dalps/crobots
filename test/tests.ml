@@ -4,53 +4,62 @@ open Main
 open Trace
 open Memory
 
-let parse_expr = parse' Parser.test_expr
-let parse_stat = parse' Parser.test_stat
+let%test "" =
+  "main () { 1 - -2; }" |> parse
+  = FUNDECL
+      ( "main",
+        [],
+        EXPR (BINARY_EXPR (CONST 1, SUB, UNARY_EXPR (UMINUS, CONST 2))) )
 
-let%test "int_const1" = "1" |> parse_expr = CONST 1
-let%test "int_const2" = "01" |> parse_expr = CONST 1
+let%test "if-else " =
+  "main() { if (1) {} else {} }" |> parse
+  = FUNDECL ("main", [], IFE (CONST 1, EMPTY, EMPTY))
 
-let%test "if_else " =
-  "if (1) {} else {}" |> parse_stat = IFE (CONST 1, EMPTY, EMPTY)
+let%test "if-no-else " =
+  "main() { if (1) {} }" |> parse = FUNDECL ("main", [], IF (CONST 1, EMPTY))
 
-let%test "if_no_else " = "if (1) {}" |> parse_stat = IF (CONST 1, EMPTY)
-
-let%test "dangling_else" =
-  "if (1) if (0) {} else {}" |> parse_stat
-  = IF (CONST 1, IFE (CONST 0, EMPTY, EMPTY))
+let%test "dangling-else" =
+  "main() { if (1) if (0) {} else {} }" |> parse
+  = FUNDECL ("main", [], IF (CONST 1, IFE (CONST 0, EMPTY, EMPTY)))
 
 let%test "arithexpr" =
-  "1 + 2 * 3 / -(2 - 3)" |> parse_expr
-  = BINARY_EXPR
-      ( CONST 1,
-        ADD,
-        BINARY_EXPR
-          ( BINARY_EXPR (CONST 2, MUL, CONST 3),
-            DIV,
-            UNARY_EXPR (UMINUS, BINARY_EXPR (CONST 2, SUB, CONST 3)) ) )
+  "main() { 1 + 2 * 3 / -(2 - 3); }" |> parse
+  = FUNDECL
+      ( "main",
+        [],
+        EXPR
+          (BINARY_EXPR
+             ( CONST 1,
+               ADD,
+               BINARY_EXPR
+                 ( BINARY_EXPR (CONST 2, MUL, CONST 3),
+                   DIV,
+                   UNARY_EXPR (UMINUS, BINARY_EXPR (CONST 2, SUB, CONST 3)) ) ))
+      )
 
-let%test "stat_list" =
-  "{ 1; 2; }" |> parse_stat = BLOCK (SEQ (EXPR (CONST 1), EXPR (CONST 2)))
+let%test "stat-list" =
+  "main () { { 1; 2; } }" |> parse
+  = FUNDECL ("main", [], BLOCK (SEQ (EXPR (CONST 1), EXPR (CONST 2))))
 
 let rec last = function
   | [] -> failwith "last on empty list"
   | [ x ] -> x
   | _ :: l -> last l
 
-let%test "foo_1" =
+let%test "foo-1" =
   "
   foo(x) { int y = 2; return x + y; }
   main () { return 1 + foo(42); }"
   |> parse |> trace |> last = CONST 45
 
-let%test "foo_2" =
+let%test "foo-2" =
   "
   foo(x) { int y = 2; return x + y; }
   main () { return bar(3) + foo(42); }
   bar(n) { return n * 2; }"
   |> parse |> trace |> last = CONST 50
 
-let%test "foo_3" =
+let%test "foo-3" =
   "
   foo(x) { int y = 2; return x + y; }
   main () { return foo(z); }
@@ -58,7 +67,7 @@ let%test "foo_3" =
   "
   |> parse |> trace |> last = CONST 4
 
-let%test "factorial_wrong" =
+let%test "factorial-1" =
   "
   fact(n) { 
     if (n == 0) return 1;
@@ -71,7 +80,7 @@ let%test "factorial_wrong" =
   }"
   |> parse |> trace |> last = CONST 24
 
-let%test "factorial" =
+let%test "factorial-2" =
   "
   fact(n) {
     if (n != 0) return n * fact (n-1);
@@ -94,12 +103,12 @@ let%test "factorial-ignore-expr-after-return" =
   }"
   |> parse |> trace |> last = CONST 720
 
-let%test "prefix-incr" =
+let%test "assignment-expr" =
   "
   main() {
     int x = 1;
 
-    int y = ++x;
+    int y = x = x + 1;
     
     return x == 2 && y == 2;
   }"
@@ -145,7 +154,7 @@ let%test "do-while-shadow" =
 
     do {
       int x = 42;
-      ++x;
+      x = x + 1;
     }
     while (i != 1);
 
@@ -178,7 +187,7 @@ let%test "many-args" =
   }"
   |> parse |> trace |> last = CONST 62
 
-let%test "many-args2" =
+let%test "many-args-2" =
   "
   foo(w,x,y,z) { return x * y + w * z; }
   main() {
@@ -199,33 +208,13 @@ let%test "many-args3" =
 let%test "side-effect" =
   "
   int x;
-  foo() { --x; }
+  foo() { x = x - 1; }
   main() {
     x = 42;
     foo();
     return x;
   }"
   |> parse |> trace |> last = CONST 41
-
-let%test "side-effect-trace" =
-  "
-  int x;
-  foo() { --x; }
-  main() {
-    x = 42;
-    foo();
-    return x;
-  }"
-  |> parse |> trace |> last = CONST 41
-
-let%test "many-args-trace" =
-  "
-  foo(w,x,y,z) { return x * y + w * z; }
-  main() {
-    int a = 2;
-    return foo(8 + a,a,3/a,42 + a * 0);
-  }"
-  |> parse |> trace |> last = CONST 422
 
 let%test "fun-no-shadow" =
   "
@@ -238,38 +227,6 @@ let%test "fun-no-shadow" =
   }"
   |> parse |> trace |> last = CONST 1
 
-let%test "fact-iterative-trace" =
-  "
-  fact(n) {
-    int acc = 1;
-
-    while (n) {
-      acc = acc * n; 
-      n = n - 1;
-    }
-    
-    return acc;
-  }
-
-  main () {
-    return fact(4);
-  }"
-  |> parse |> trace |> last = CONST 24
-
-let%test "do-while-trace" =
-  "
-  main () {
-    int i = 1;
-    int x = 2;
-    do {
-      x = x * 2;
-    }
-    while (i != 1);
-
-    return x;
-  }"
-  |> parse |> trace |> last = CONST 4
-
 let%test "exit-on-return" =
   "
   main() {
@@ -277,7 +234,7 @@ let%test "exit-on-return" =
 
     {
       int y;
-      y = --x;
+      y = x - 1;
       return y;
     } 
     
@@ -286,39 +243,66 @@ let%test "exit-on-return" =
   }"
   |> parse |> trace |> last = CONST 19
 
-let%test "foo21" =
+let%test "foo-nesting" =
   "
   foo(x, y) {
     {
-      y = y + --x;
+      y = y + (x = x - 1);
       return y;
-    } 
+    }
   }
 
   main() {
     int x = 20;
 
-    return x == 20 && foo(x,3) == 22;
+    return foo(x,3) == 22 && x == 20;
   }"
   |> parse |> trace |> last = CONST 1
 
 let%test "comments" =
   "
-  /* foo is a cool function */
+  /* foo is a c00l function */
   foo(w,x,y,z) { return x * y + w * z; }
 
   /*
-    main is not so cool
+    main is not so cool :'(
   */
   main() {
-    int w = 2; // why did i declare this
+    int w = 2; // why did i declare this?
     int y = w;
     int z = foo(8 + w,w,3/w,42 + w * 0);
-    return w == 2 && y == 2 && z == 422; // please return 1
+    return w == 2 && y == 2 && z == 422; // PlEaSe return 1!!!
   }"
   |> parse |> trace |> last = CONST 1
 
-let%test "intrinsic1" =
+let%test "wrong-args" =
+  try
+    "
+    or3(a,b,c) {
+      return a || b || c;
+    }
+
+    main() {
+      return or3(0, 1);
+    }"
+    |> parse |> trace |> ignore;
+    false
+  with WrongArguments (2, 3) -> true
+
+let%test "wrong-args-intrinsic" =
+  try
+    "
+    main() {
+      int s = 50;
+
+      drive(s);
+      scan(270, -10, s);
+    }"
+    |> parse |> trace |> ignore;
+    false
+  with WrongArguments (1, 2) -> true
+
+let%test "intrinsic-1" =
   "
   main() {
     int x = rand(1000), y = rand(1000);
@@ -328,7 +312,7 @@ let%test "intrinsic1" =
   }"
   |> parse |> trace |> last = CONST 1
 
-let%test "intrinsic-override-not-allowed" =
+let%test "intrinsic-override" =
   try
     "
     drive(x,y) {
