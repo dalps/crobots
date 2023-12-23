@@ -77,8 +77,7 @@ let args_error f n_expect n_actual =
     (Printf.sprintf "%s expects %d arguments, but %d were given." f n_expect
        n_actual)
 
-let call_fun vals f =
-  let env, mem = (!cur_robot.env, !cur_robot.mem) in
+let call_fun (env, mem) vals f =
   match find_env env f with
   | Fun (pars, instr) -> (
       try
@@ -106,44 +105,42 @@ let call_fun vals f =
         args_error (string_of_intrinsic i) exp act)
   | _ -> failwith "not a function"
 
-let rec trace_args vals f = function
-  | [] -> call_fun vals f
-  | (CONST _ as v) :: args' -> trace_args (vals @ [ v ]) f args'
+let rec trace_args st vals f = function
+  | [] -> call_fun st vals f
+  | (CONST _ as v) :: args' -> trace_args st (vals @ [ v ]) f args'
   | e :: args' ->
-      let e' = trace1_expr e in
+      let e' = trace1_expr st e in
       CALL (f, vals @ (e' :: args'))
 
-and trace1_expr e =
-  let env, mem = (!cur_robot.env, !cur_robot.mem) in
+and trace1_expr ((env, mem) as st) e =
   match e with
   | IDE x -> CONST (read_var env mem x)
   | ASSIGN (x, (CONST n as e)) ->
       update_var env mem x n;
       e
   | ASSIGN (x, e) ->
-      let e' = trace1_expr e in
+      let e' = trace1_expr st e in
       ASSIGN (x, e')
-  | CALL (f, es) -> trace_args [] f es
+  | CALL (f, es) -> trace_args st [] f es
   | CALL_EXEC s -> (
-      match trace1_instr (Instr s) with
+      match trace1_instr st (Instr s) with
       | St -> NIL
       | Ret n -> CONST n
       | Instr s' -> CALL_EXEC s')
   | UNARY_EXPR (uop, CONST n) -> CONST ((fun_of_uop uop) n)
   | UNARY_EXPR (uop, e) ->
-      let e' = trace1_expr e in
+      let e' = trace1_expr st e in
       UNARY_EXPR (uop, e')
   | BINARY_EXPR (CONST n1, bop, CONST n2) -> CONST ((fun_of_bop bop) n1 n2)
   | BINARY_EXPR ((CONST _ as e1), bop, e2) ->
-      let e2' = trace1_expr e2 in
+      let e2' = trace1_expr st e2 in
       BINARY_EXPR (e1, bop, e2')
   | BINARY_EXPR (e1, bop, e2) ->
-      let e1' = trace1_expr e1 in
+      let e1' = trace1_expr st e1 in
       BINARY_EXPR (e1', bop, e2)
   | _ -> raise NoRuleApplies
 
-and trace1_instr s =
-  let env, mem = (!cur_robot.env, !cur_robot.mem) in
+and trace1_instr ((env, mem) as st) s =
   match s with
   | St | Ret _ -> raise NoRuleApplies
   | Instr s -> (
@@ -155,7 +152,7 @@ and trace1_instr s =
           add_var env mem ~init:n id;
           St
       | VARDECL_INIT (id, e) ->
-          let e' = trace1_expr e in
+          let e' = trace1_expr st e in
           Instr (VARDECL_INIT (id, e'))
       | FUNDECL (id, pars, s) ->
           add_fun env id (pars, s);
@@ -163,24 +160,24 @@ and trace1_instr s =
       | IF (CONST 0, _) -> St
       | IF (CONST _, s) -> Instr s
       | IF (e, s) ->
-          let e' = trace1_expr e in
+          let e' = trace1_expr st e in
           Instr (IF (e', s))
       | IFE (CONST 0, _, s2) -> Instr s2
       | IFE (CONST _, s1, _) -> Instr s1
       | IFE (e, s1, s2) ->
-          let e' = trace1_expr e in
+          let e' = trace1_expr st e in
           Instr (IFE (e', s1, s2))
-      | WHILE (e, s) -> Instr (WHILE_EXEC (e, s, e)) |> trace1_instr
+      | WHILE (e, s) -> Instr (WHILE_EXEC (e, s, e)) |> trace1_instr st
       | WHILE_EXEC (CONST 0, _, _) -> St
       | WHILE_EXEC (CONST _, s, g) -> Instr (SEQ (s, WHILE_EXEC (g, s, g)))
       | WHILE_EXEC (e, s, g) ->
-          let e' = trace1_expr e in
+          let e' = trace1_expr st e in
           Instr (WHILE_EXEC (e', s, g))
       | BLOCK s ->
           add_frame env;
-          Instr (BLOCK_EXEC s) |> trace1_instr
+          Instr (BLOCK_EXEC s) |> trace1_instr st
       | BLOCK_EXEC s -> (
-          match trace1_instr (Instr s) with
+          match trace1_instr st (Instr s) with
           | Instr s' -> Instr (BLOCK_EXEC s')
           | Ret n -> Ret n
           | St ->
@@ -192,47 +189,46 @@ and trace1_instr s =
                 ignore (pop_frame env);
                 Ret n
             | e ->
-                let e' = trace1_expr e in
+                let e' = trace1_expr st e in
                 Instr (RET (Some e')))
       | EXPR (CONST _) | EXPR NIL -> St
       | EXPR e ->
-          let e' = trace1_expr e in
+          let e' = trace1_expr st e in
           Instr (EXPR e')
       | SEQ (s1, s2) -> (
-          match trace1_instr (Instr s1) with
+          match trace1_instr st (Instr s1) with
           | Instr s1' -> Instr (SEQ (s1', s2))
           | St -> Instr s2
           | Ret n -> Ret n)
       | _ -> St)
 
-let rec trace_instr conf =
-  try conf :: trace_instr (trace1_instr conf) with NoRuleApplies -> [ conf ]
+let rec trace_instr st conf =
+  try conf :: trace_instr st (trace1_instr st conf)
+  with NoRuleApplies -> [ conf ]
 
-and trace_expr e =
-  try e :: trace_expr (trace1_expr e) with NoRuleApplies -> [ e ]
+let rec trace_expr st e =
+  try e :: trace_expr st (trace1_expr st e) with NoRuleApplies -> [ e ]
 
-let trace s =
-  init_memory () |> ignore;
-  init_stack () |> ignore;
-  let conf0 = Instr s in
-  ignore (trace_instr conf0);
-  trace_expr (CALL ("main", []))
-
-let rec trace_instr_st conf =
-  let env = get_env !cur_robot.env in
-  let mem = get_mem !cur_robot.mem in
-  try (env, mem, conf) :: trace_instr_st (trace1_instr conf)
+let rec trace_instr_st ((env, mem) as st) conf =
+  let env, mem = (get_env env, get_mem mem) in
+  try (env, mem, conf) :: trace_instr_st st (trace1_instr st conf)
   with NoRuleApplies -> [ (env, mem, conf) ]
 
-and trace_expr_st e =
-  let env = get_env !cur_robot.env in
-  let mem = get_mem !cur_robot.mem in
-  try (env, mem, e) :: trace_expr_st (trace1_expr e)
+and trace_expr_st ((env, mem) as st) e =
+  let env, mem = (get_env env, get_mem mem) in
+  try (env, mem, e) :: trace_expr_st st (trace1_expr st e)
   with NoRuleApplies -> [ (env, mem, e) ]
 
-let trace_st s =
-  init_memory () |> ignore;
-  init_stack () |> ignore;
+let mem0 = init_memory ()
+let env0 = init_stack ()
+let st0 = (env0, mem0)
+
+let trace s =
   let conf0 = Instr s in
-  ignore (trace_instr conf0);
-  trace_expr_st (CALL ("main", []))
+  ignore (trace_instr st0 conf0);
+  trace_expr st0 (CALL ("main", []))
+
+let trace_st s =
+  let conf0 = Instr s in
+  ignore (trace_instr st0 conf0);
+  trace_expr_st st0 (CALL ("main", []))

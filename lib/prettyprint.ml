@@ -23,10 +23,6 @@ let string_of_bop = function
 let string_of_uop = function
   | UMINUS -> "-"
 
-let string_of_postfix_op = function
-  | INCR -> "++"
-  | DECR -> "--"
-
 let rec string_of_expr = function
   | NIL -> "nil"
   | IDE x -> x
@@ -38,7 +34,6 @@ let rec string_of_expr = function
   | UNARY_EXPR (uop, e) -> spr "%s%s" (string_of_uop uop) (string_of_expr e)
   | BINARY_EXPR (e1, bop, e2) ->
       spr "%s %s %s" (string_of_expr e1) (string_of_bop bop) (string_of_expr e2)
-  | POSTFIX_EXPR (x, pop) -> spr "%s%s" x (string_of_postfix_op pop)
 
 and string_of_instr = function
   | EMPTY -> ";"

@@ -32,8 +32,6 @@ type binary_op =
 
 type unary_op = UMINUS
 
-type postfix_op = INCR | DECR
-
 type parameters = identifier list
 
 type expression =
@@ -45,7 +43,6 @@ type expression =
   | CONST of int
   | UNARY_EXPR of unary_op * expression
   | BINARY_EXPR of expression * binary_op * expression
-  | POSTFIX_EXPR of identifier * postfix_op
 
 and instruction =
   | EMPTY

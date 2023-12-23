@@ -1,7 +1,6 @@
 open Ast
 
 exception IntrinsicOverride
-exception WrongArguments of int * int
 exception UndeclaredVariable of string
 
 type loc = int
@@ -14,7 +13,8 @@ type envval =
   | Intrinsic of intrinsic
 
 type memory = (loc, memval) Hashtbl.t
-type environment = (ide, envval) Hashtbl.t Stack.t
+type environment = (ide, envval) Hashtbl.t
+type env_stack = environment Stack.t
 
 let max_key h =
   Hashtbl.fold
@@ -75,16 +75,16 @@ let update_var env mem x n =
   | Loc l -> update_mem mem l n
   | _ -> failwith "update_var on function"
 
-let add_fun env ide (pars, s) =
+let add_fun env ide data =
   match ide with
   | "scan" | "cannon" | "drive" | "damage" | "speed" | "loc_x" | "loc_y"
   | "rand" | "sqrt" | "sin" | "cos" | "tan" | "atan" ->
       raise IntrinsicOverride
-  | _ -> add_env env ide (Fun (pars, s))
+  | _ -> add_env env ide (Fun data)
 
 let read_fun env x =
   match find_env env x with
-  | Fun (pars, s) -> (pars, s)
+  | Fun data -> data
   | _ -> failwith "read_fun on integer"
 
 let janitor env mem =

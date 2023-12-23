@@ -1,6 +1,6 @@
 open Crobots
 
-let usage_msg = "crobots <robot-program>"
+let usage_msg = "crobots <robot-programs>"
 
 module Cmd = struct
   let parse () =
@@ -37,7 +37,7 @@ let loop () =
     Array.iter
       (fun r ->
         cur_robot := r;
-        r.ep <- Trace.trace1_expr r.ep;
+        r.ep <- Trace.trace1_expr (r.env, r.mem) r.ep;
         Memory.janitor r.env r.mem)
       !all_robots;
     Prettyprint.string_of_all_robots !all_robots |> print_endline;
@@ -73,9 +73,7 @@ let _ =
       (fun (f, p) ->
         let r = init () in
         cur_robot := r;
-        r.mem <- Memory.init_memory ();
-        r.env <- Memory.init_stack ();
-        Trace.trace_instr (Instr p) |> ignore;
+        Trace.trace_instr (r.env, r.mem) (Instr p) |> ignore;
         r.name <- f;
         r.program <- p;
         r.x <- Random.int 1000;

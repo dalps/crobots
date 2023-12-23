@@ -31,20 +31,10 @@
 
 %start <program> main
 
-(* additional start symbols for testing *)
-%start <expression> test_expr
-%start <program> test_stat
-
 %%
 
 let main :=
 | ~ = external_decl_list; EOF; <>
-
-let test_expr :=
-| ~ = expr; EOF; <>
-
-let test_stat :=
-| ~ = stat; EOF; <>
 
 let external_decl_list :=
 | external_decl
