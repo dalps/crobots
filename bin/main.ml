@@ -1,4 +1,5 @@
 open Crobots
+open Sprite
 
 let usage_msg = "crobots <robot-programs>"
 
@@ -32,20 +33,6 @@ let read_file filename =
 let instr_per_update = 20
 let clock = ref 0
 
-let window_width = 1000
-let window_height = 1000
-let robot_width = 50.
-let robot_height = 50.
-let robot_recs =
-  Array.make 4
-    ( Raylib.Rectangle.create
-        ((window_width |> float_of_int) /. 2.)
-        ((window_height |> float_of_int) /. 2.)
-        robot_width robot_height,
-      Raylib.Color.black )
-
-let colors = Raylib.[| Color.blue; Color.brown; Color.darkgreen; Color.pink |]
-
 let draw_game () =
   let open Raylib in
   begin_drawing ();
@@ -53,13 +40,11 @@ let draw_game () =
 
   Array.iteri
     (fun i (r : Robot.t) ->
-      let rect, col = robot_recs.(i) in
-      Rectangle.set_x rect (r.x |> float_of_int);
-      Rectangle.set_y rect (r.y |> float_of_int);
-      draw_rectangle_pro rect
-        (Vector2.create (robot_width /. 2.) (robot_height /. 2.))
+      Sprite.set_x sprites.(i) (r.x |> float_of_int);
+      Sprite.set_y sprites.(i) (r.y |> float_of_int);
+      Sprite.draw_sprite sprites.(i)
         (r.heading |> float_of_int)
-        col)
+        (r.scan_degrees |> float_of_int))
     Robot.(!all_robots);
 
   let fps = get_fps () in
@@ -117,15 +102,13 @@ let _ =
         r.y <- Random.int 1000;
         r.last_y <- r.y;
         r.org_y <- r.y;
-        robot_recs.(i) <-
-          ( Raylib.Rectangle.create (r.x |> float_of_int) (r.y |> float_of_int)
-              robot_width robot_height,
-            colors.(i) );
+        sprites.(i) <-
+          Sprite.create (r.x |> float_of_int) (r.y |> float_of_int) colors.(i);
         r)
       programs
   in
   all_robots := Array.of_list robots;
   let open Raylib in
   init_window window_width window_height "crobots";
-  set_target_fps 60;
+  set_target_fps 59;
   loop ()
