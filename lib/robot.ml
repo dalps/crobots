@@ -5,9 +5,7 @@ let accel = 1
 let turn_speed = 50
 let robot_speed = 1
 let collision = 5
-let mis_range = 700
-let reload_cycles = 15
-let explosion_cycles = 5
+
 let res_limit = 10
 
 type status = ALIVE | DEAD
@@ -76,16 +74,17 @@ let degree_of_int d = abs d mod 360
 let perc_of_int n = max 0 n |> min 100
 
 let cannon degree range =
-  let range = if range > mis_range then mis_range else range in
+  let range = if range > Missile.mis_range then Missile.mis_range else range in
   let degree = degree_of_int degree in
-  if range >= 0 then 1
+  if range <= 0 then 1
   else if !cur_robot.reload > 0 then 0
   else
     try
       Array.iter
         (fun (m : Missile.t) ->
           if m.status = AVAIL then (
-            !cur_robot.reload <- reload_cycles;
+            !cur_robot.scan_degrees <- degree;
+            !cur_robot.reload <- Missile.reload_cycles;
             m.status <- FLYING;
             m.beg_x <- !cur_robot.x;
             m.beg_y <- !cur_robot.y;
@@ -94,7 +93,8 @@ let cannon degree range =
             m.heading <- degree;
             m.range <- range * click;
             m.travelled <- 0;
-            m.count <- explosion_cycles;
+            m.count <- Missile.explosion_cycles;
+            Printf.printf "%s fired a missile\n" !cur_robot.name;
             raise Exit))
         !cur_robot.missiles;
       1
@@ -243,10 +243,64 @@ let update_robot i (r : t) =
         r.damage <- r.damage + collision
     | _ -> ())
 
+let exp_damage dist =
+  dist |> float_of_int |> fun x ->
+  max 0 ((x *. (-1. /. 3.)) +. (35. /. 3.) |> int_of_float)
+
+let update_missiles (r : t) =
+  Array.iter
+    (fun (m : Missile.t) ->
+      if m.count <= 0 then m.status <- AVAIL else m.count <- m.count - 1;
+      match m.status with
+      | FLYING ->
+          let x = ref 0 in
+          let y = ref 0 in
+          m.travelled <- m.travelled + Missile.mis_speed;
+          if m.travelled > m.range then m.travelled <- m.range;
+          m.cur_x <- m.beg_x + (cos m.heading * (m.travelled / click) / 100000);
+          x := m.cur_x;
+          m.cur_y <- m.beg_y + (sin m.heading * (m.travelled / click) / 100000);
+          y := m.cur_y;
+
+          (* check for missiles hitting walls *)
+          if !x < 0 then (
+            m.status <- EXPLODING;
+            x := 1);
+          if !x >= max_x * click then (
+            m.status <- EXPLODING;
+            x := (max_x * click) - 1);
+          if !y < 0 then (
+            m.status <- EXPLODING;
+            y := 1);
+          if !y >= max_y * click then (
+            m.status <- EXPLODING;
+            y := (max_y * click) - 1);
+
+          if m.travelled = m.range then m.status <- EXPLODING;
+
+          if m.status = EXPLODING then
+            Array.iter
+              (fun (r : t) ->
+                if r.status <> DEAD then (
+                  x := (r.x - m.cur_x) / click;
+                  y := (r.x - m.cur_x) / click;
+                  let dist = sqrt ((!x * !x) + (!y * !y)) in
+                  r.damage <- r.damage + exp_damage dist;
+                  if r.damage >= 100 then (
+                    r.damage <- 100;
+                    r.status <- DEAD)))
+              !all_robots
+      | EXPLODING -> ()
+      | _ -> ())
+    r.missiles
+
 let update_all_robots =
   Array.iteri (fun i r ->
+      update_missiles r;
       match (r.status, r.damage) with
-      | DEAD, _ -> ()
+      | DEAD, _ ->
+          Printf.printf "%d:%s is dead!\n" i r.name;
+          ()
       | ALIVE, d when d >= 100 ->
           r.damage <- 100;
           r.status <- DEAD

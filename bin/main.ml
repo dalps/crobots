@@ -40,15 +40,12 @@ let draw_game () =
 
   Array.iteri
     (fun i (r : Robot.t) ->
-      Sprite.set_x sprites.(i) (r.x |> float_of_int);
-      Sprite.set_y sprites.(i) (r.y |> float_of_int);
-      Sprite.draw_sprite sprites.(i)
-        (r.heading |> float_of_int)
-        (r.scan_degrees |> float_of_int))
+      let open Sprite in
+      update_sprite sprites.(i) r;
+      draw_sprite sprites.(i) r)
     Robot.(!all_robots);
 
-  let fps = get_fps () in
-  draw_text (Printf.sprintf "FPS: %d" fps) 5 5 20 Color.black;
+  draw_fps 5 5;
   end_drawing ()
 
 let rec loop () =
@@ -69,6 +66,7 @@ let rec loop () =
         clock := 0);
 
       clock := !clock + 1;
+      flush stdout;
       loop ()
 
 let _ =
