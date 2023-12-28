@@ -1,5 +1,6 @@
 open Crobots
 open Sprite
+open Gui
 
 let usage_msg = "crobots <robot-programs>"
 
@@ -38,14 +39,17 @@ let draw_game () =
   begin_drawing ();
   clear_background Color.raywhite;
 
+  draw_rectangle_lines padding padding arena_width arena_width Color.gray;
+
   Array.iteri
     (fun i (r : Robot.t) ->
       let open Sprite in
       update_sprite sprites.(i) r;
-      draw_sprite sprites.(i) r)
+      draw_sprite sprites.(i) r;
+      draw_stats i r sprites.(i).color)
     Robot.(!all_robots);
 
-  draw_fps 5 5;
+  draw_fps (padding + 5) (padding + 5);
   end_drawing ()
 
 let rec loop () =
@@ -55,9 +59,12 @@ let rec loop () =
   | false ->
       Array.iter
         (fun r ->
-          cur_robot := r;
-          r.ep <- Trace.trace1_expr (r.env, r.mem) r.ep;
-          Memory.janitor r.env r.mem)
+          match r.status with
+          | ALIVE ->
+              cur_robot := r;
+              r.ep <- Trace.trace1_expr (r.env, r.mem) r.ep;
+              Memory.janitor r.env r.mem
+          | DEAD -> ())
         !all_robots;
 
       if !clock = instr_per_update then (

@@ -1,8 +1,7 @@
 open Raylib
 open Crobots
+open Gui
 
-let window_width = 1000
-let window_height = 1000
 let robot_width = 50.
 let robot_height = 50.
 let tank_width = robot_width
@@ -52,17 +51,17 @@ let sprites =
        Raylib.Color.black)
 
 let update_sprite (s : t) (r : Robot.t) =
-  Rectangle.set_x s.tank (r.x |> float_of_int);
-  Rectangle.set_x s.turret (r.x |> float_of_int);
-  Rectangle.set_x s.cannon (r.x |> float_of_int);
-  Rectangle.set_y s.tank (r.y |> float_of_int);
-  Rectangle.set_y s.turret (r.y |> float_of_int);
-  Rectangle.set_y s.cannon (r.y |> float_of_int);
+  Rectangle.set_x s.tank (padding + r.x |> float_of_int);
+  Rectangle.set_x s.turret (padding + r.x |> float_of_int);
+  Rectangle.set_x s.cannon (padding + r.x |> float_of_int);
+  Rectangle.set_y s.tank (padding + r.y |> float_of_int);
+  Rectangle.set_y s.turret (padding + r.y |> float_of_int);
+  Rectangle.set_y s.cannon (padding + r.y |> float_of_int);
   Array.iter2
     (fun sprite (missile : Missile.t) ->
-      Rectangle.set_x sprite (missile.cur_x |> float_of_int);
+      Rectangle.set_x sprite (padding + missile.cur_x |> float_of_int);
       Rectangle.set_y sprite
-        (missile.cur_y
+        (padding + missile.cur_y
          - ((cannon_width /. 2.) -. ((cannon_width -. missile_width) /. 2.)
            |> int_of_float)
         |> float_of_int))
