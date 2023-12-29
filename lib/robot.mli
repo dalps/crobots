@@ -46,9 +46,6 @@ val init : unit -> t
 val cur_robot : t ref
 val all_robots : t array ref
 
-val update_robot : int -> t -> unit
-val update_all_robots : t array -> unit
-
 val scan : int -> int -> int
 (* invokes the robot's scanner, at a specified
    degree and resolution.

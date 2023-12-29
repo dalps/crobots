@@ -77,7 +77,7 @@ let rec loop () =
 
       decr movement;
       if !movement <= 0 then (
-        update_all_robots !all_robots;
+        Motion.update_all_robots !all_robots;
         movement := motion_cycles);
 
       decr display;
