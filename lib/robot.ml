@@ -112,22 +112,23 @@ let loc_y () = !cur_robot.y
 let rand = Random.int
 let sqrt x = abs x |> float_of_int |> Float.sqrt |> int_of_float
 
+let deg2rad = Float.pi /. 180.
+let rad2deg = 180. /. Float.pi
+
 let int_trig ?(fact = 1) f x =
-  degree_of_int x |> float_of_int
-  |> (fun x -> x *. Float.pi /. 180.)
-  |> f
+  degree_of_int x |> float_of_int |> ( *. ) deg2rad |> f
   |> ( *. ) (float_of_int fact)
   |> Float.round |> int_of_float
 
-let sin = int_trig Float.sin ~fact:100_000
-let cos = int_trig Float.cos ~fact:100_000
-let tan = int_trig Float.tan ~fact:100_000
+let trig_scale = 100_000
+
+let sin = int_trig Float.sin ~fact:trig_scale
+let cos = int_trig Float.cos ~fact:trig_scale
+let tan = int_trig Float.tan ~fact:trig_scale
 let atan x =
   x |> float_of_int
-  |> ( *. ) (1. /. 100_000.)
-  |> Float.atan
-  |> (fun x -> x *. 180. /. Float.pi)
-  |> int_of_float
+  |> ( *. ) (1. /. (trig_scale |> float_of_int))
+  |> Float.atan |> ( *. ) rad2deg |> Float.round |> int_of_float
 
 let scan degree resolution =
   let resolution = if resolution > res_limit then res_limit else resolution in
@@ -140,6 +141,7 @@ let scan degree resolution =
         if r = !cur_robot || r.status = DEAD then raise Exit;
         let x = (!cur_robot.x / click) - (r.x / click) in
         let y = (!cur_robot.y / click) - (r.y / click) in
+        let y = y * trig_scale in
         let d = ref 0 in
 
         (if x = 0 then d := if r.y > !cur_robot.y then 90 else 270
