@@ -36,6 +36,7 @@ type t = {
   mutable env : Memory.env_stack;
   mutable mem : Memory.memory;
   mutable missiles : Missile.t array;
+  mutable scanning_cycles : int;
 }
 
 let init () =
@@ -65,7 +66,10 @@ let init () =
     ep = CALL ("main", []);
     env = Memory.init_stack ();
     mem = Memory.init_memory ();
+    scanning_cycles = 0;
   }
+
+let scanning_duration = 5
 
 let cur_robot = ref (init ())
 let all_robots = ref [||]
@@ -134,6 +138,7 @@ let scan degree resolution =
   let resolution = if resolution > res_limit then res_limit else resolution in
   let degree = degree_of_int degree in
   let distance, close_dist = (ref 0, ref 0) in
+  !cur_robot.scanning_cycles <- scanning_duration;
   !cur_robot.scan_degrees <- degree;
   try
     Array.iter
@@ -299,6 +304,8 @@ let update_missiles (r : t) =
 let update_all_robots =
   Array.iteri (fun i r ->
       update_missiles r;
+      if r.scanning_cycles > 0 then r.scanning_cycles <- r.scanning_cycles - 1
+      else r.scanning_cycles <- 0;
       match (r.status, r.damage) with
       | DEAD, _ ->
           Printf.printf "%d:%s is dead!\n" i r.name;

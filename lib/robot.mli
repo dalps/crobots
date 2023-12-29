@@ -26,6 +26,7 @@ type t = {
   mutable env : Memory.env_stack;
   mutable mem : Memory.memory;
   mutable missiles : Missile.t array;
+  mutable scanning_cycles : int;
 }
 
 val init : unit -> t
