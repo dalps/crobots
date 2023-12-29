@@ -1,12 +1,19 @@
-let click = 1
-let max_x = 1000
-let max_y = 1000
-let accel = 1
+let robot_speed = 7
 let turn_speed = 50
-let robot_speed = 1
+let accel = 10
 let collision = 5
 
+let click = 10
+let max_x = 1000
+let max_y = 1000
+
+let scanning_duration = 5
+
+let trig_scale = 100_000.
 let res_limit = 10
+
+let deg2rad = Float.pi /. 180.
+let rad2deg = 180. /. Float.pi
 
 type status = ALIVE | DEAD
 
@@ -69,8 +76,6 @@ let init () =
     scanning_cycles = 0;
   }
 
-let scanning_duration = 5
-
 let cur_robot = ref (init ())
 let all_robots = ref [||]
 
@@ -101,7 +106,7 @@ let cannon degree range =
             Printf.printf "%s fired a missile\n" !cur_robot.name;
             raise Exit))
         !cur_robot.missiles;
-      1
+      0
     with Exit -> 1
 
 let drive degree speed =
@@ -109,66 +114,66 @@ let drive degree speed =
   !cur_robot.d_speed <- perc_of_int speed
 
 let damage () = !cur_robot.damage
+
 let speed () = !cur_robot.speed
+
 let loc_x () = !cur_robot.x
+
 let loc_y () = !cur_robot.y
 
 let rand = Random.int
-let sqrt x = abs x |> float_of_int |> Float.sqrt |> int_of_float
 
-let deg2rad = Float.pi /. 180.
-let rad2deg = 180. /. Float.pi
+let sqrt x = abs x |> float_of_int |> Float.sqrt |> Float.round |> int_of_float
 
-let int_trig ?(fact = 1) f x =
-  degree_of_int x |> float_of_int |> ( *. ) deg2rad |> f
-  |> ( *. ) (float_of_int fact)
+let int_trig ?(fact = 1.) f x =
+  degree_of_int x |> float_of_int |> ( *. ) deg2rad |> f |> ( *. ) fact
   |> Float.round |> int_of_float
 
-let trig_scale = 100_000
-
 let sin = int_trig Float.sin ~fact:trig_scale
+
 let cos = int_trig Float.cos ~fact:trig_scale
+
 let tan = int_trig Float.tan ~fact:trig_scale
+
 let atan x =
   x |> float_of_int
-  |> ( *. ) (1. /. (trig_scale |> float_of_int))
+  |> ( *. ) (1. /. trig_scale)
   |> Float.atan |> ( *. ) rad2deg |> Float.round |> int_of_float
 
 let scan degree resolution =
-  let resolution = if resolution > res_limit then res_limit else resolution in
+  let res = if abs resolution > res_limit then res_limit else resolution in
   let degree = degree_of_int degree in
-  let distance, close_dist = (ref 0, ref 0) in
+  let close_dist = ref 0. in
   !cur_robot.scanning_cycles <- scanning_duration;
   !cur_robot.scan_degrees <- degree;
   try
     Array.iter
       (fun r ->
         if r = !cur_robot || r.status = DEAD then raise Exit;
-        let x = (!cur_robot.x / click) - (r.x / click) in
-        let y = (!cur_robot.y / click) - (r.y / click) in
-        let y = y * trig_scale in
+        let x = (!cur_robot.x / click) - (r.x / click) |> float_of_int in
+        let y = (!cur_robot.y / click) - (r.y / click) |> float_of_int in
         let d = ref 0 in
 
-        (if x = 0 then d := if r.y > !cur_robot.y then 90 else 270
-         else
-           match (r.y < !cur_robot.y, r.x > !cur_robot.x) with
-           | true, true -> d := 360 + atan (y / x)
-           | false, true -> d := atan (y / x)
-           | _ -> d := 180 + atan (y / x));
+        if x <> 0. then
+          let d' = Float.atan (y /. x) *. rad2deg |> int_of_float in
+          match (r.x >= !cur_robot.x, r.y >= !cur_robot.y) with
+          | true, true -> d := d' (* 1st quadrant *)
+          | true, false -> d := 360 + d' (* 4th quadrant *)
+          | _ -> d := 180 + d' (* 2nd - 3rd quadrant *)
+        else d := if r.y > !cur_robot.y then 90 else 270;
 
-        let b =
-          if degree > resolution && degree < 360 - resolution then 0 else 180
-        in
-        let dd = degree + b in
-        let d1 = b + !d - resolution in
-        let d2 = b + !d + resolution in
+        let b = if degree > res && degree < 360 - res then 0 else 180 in
+        let dd = b + degree in
+        let d1 = b + !d - res in
+        let d2 = b + !d + res in
 
-        if dd >= d1 && dd <= d2 then distance := sqrt ((x * x) + (y * y));
-        if !distance < !close_dist || !close_dist = 0 then
-          close_dist := !distance)
+        if dd >= d1 && dd <= d2 then
+          let distance = Float.sqrt ((x *. x) +. (y *. y)) in
+          if distance < !close_dist || !close_dist = 0. then
+            close_dist := distance)
       !all_robots;
-    !close_dist
-  with Exit -> !close_dist
+    !close_dist |> int_of_float
+  with Exit -> !close_dist |> int_of_float
 
 let update_robot i (r : t) =
   if r.reload > 0 then r.reload <- r.reload - 1;
@@ -264,9 +269,9 @@ let update_missiles (r : t) =
           let y = ref 0 in
           m.travelled <- m.travelled + Missile.mis_speed;
           if m.travelled > m.range then m.travelled <- m.range;
-          m.cur_x <- m.beg_x + (cos m.heading * (m.travelled / click) / 100000);
+          m.cur_x <- m.beg_x + (cos m.heading * (m.travelled / click) / 10_000);
           x := m.cur_x;
-          m.cur_y <- m.beg_y + (sin m.heading * (m.travelled / click) / 100000);
+          m.cur_y <- m.beg_y + (sin m.heading * (m.travelled / click) / 10_000);
           y := m.cur_y;
 
           (* check for missiles hitting walls *)
@@ -307,9 +312,7 @@ let update_all_robots =
       if r.scanning_cycles > 0 then r.scanning_cycles <- r.scanning_cycles - 1
       else r.scanning_cycles <- 0;
       match (r.status, r.damage) with
-      | DEAD, _ ->
-          Printf.printf "%d:%s is dead!\n" i r.name;
-          ()
+      | DEAD, _ -> ()
       | ALIVE, d when d >= 100 ->
           r.damage <- 100;
           r.status <- DEAD

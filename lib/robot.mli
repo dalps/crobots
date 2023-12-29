@@ -29,6 +29,18 @@ type t = {
   mutable scanning_cycles : int;
 }
 
+val robot_speed : int
+val turn_speed : int
+val accel : int
+val collision : int
+val click : int
+val max_x : int
+val max_y : int
+val res_limit : int
+
+val deg2rad : float
+val rad2deg : float
+
 val init : unit -> t
 
 val cur_robot : t ref

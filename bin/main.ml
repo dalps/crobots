@@ -31,8 +31,12 @@ let read_file filename =
    with _ -> close_in_noerr ic);
   !out
 
-let instr_per_update = 20
-let clock = ref 0
+let motion_cycles = 15
+let update_cycles = 30
+let c = ref 0
+let movement = ref motion_cycles
+let display = ref update_cycles
+let ( += ) r n = r := !r + n
 
 let draw_game () =
   let open Raylib in
@@ -50,6 +54,10 @@ let draw_game () =
     Robot.(!all_robots);
 
   draw_fps (padding + 5) (padding + 5);
+  c += update_cycles;
+  draw_text
+    (Printf.sprintf "CYCLES %d" !c)
+    (padding + 5 + 100) (padding + 5) 20 Color.black;
   end_drawing ()
 
 let rec loop () =
@@ -67,12 +75,16 @@ let rec loop () =
           | DEAD -> ())
         !all_robots;
 
-      if !clock = instr_per_update then (
+      decr movement;
+      if !movement <= 0 then (
         update_all_robots !all_robots;
-        draw_game ();
-        clock := 0);
+        movement := motion_cycles);
 
-      clock := !clock + 1;
+      decr display;
+      if !display <= 0 then (
+        draw_game ();
+        display := update_cycles);
+
       flush stdout;
       loop ()
 
