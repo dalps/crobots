@@ -17,7 +17,8 @@ type tag = string
 
 type memory = (loc, memval) Hashtbl.t
 type environment = (ide, envval) Hashtbl.t
-type env_stack = (tag * environment) Stack.t
+type stackval = (tag * environment)
+type env_stack = stackval Stack.t
 
 let max_key h =
   Hashtbl.fold
@@ -36,7 +37,8 @@ let update_mem = Hashtbl.replace
 
 let top_tag env = Stack.top env |> fst
 let top_frame env = Stack.top env |> snd
-let add_frame t env = Stack.push (t, top_frame env |> Hashtbl.copy) env
+let add_topenv t env = Stack.push (t, top_frame env |> Hashtbl.copy) env
+let add_frame f env = Stack.push f env
 let pop_frame env = Stack.pop env
 
 let rec pop_blocks env =

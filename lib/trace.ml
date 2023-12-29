@@ -68,19 +68,14 @@ let apply_intrinsic args = function
   | TAN -> Some (apply1 tan args)
   | ATAN -> Some (apply1 atan args)
 
-type state = environment * memory
+type state = env_stack * memory
 type conf = St | Ret of int | Instr of instruction
-
-let args_error f n_expect n_actual =
-  failwith
-    (Printf.sprintf "%s expects %d arguments, but %d were given." f n_expect
-       n_actual)
 
 let call_fun (env, mem) vals f =
   match find_env env f with
   | Fun (pars, instr) -> (
       try
-        add_frame f env;
+        add_topenv f env;
         List.iter2
           (fun x -> function
             | CONST n -> add_var env mem ~init:n x
@@ -170,7 +165,7 @@ and trace1_instr ((env, mem) as st) s =
           let e' = trace1_expr st e in
           Instr (WHILE_EXEC (e', s, g))
       | BLOCK s ->
-          add_frame block_tag env;
+          add_topenv block_tag env;
           Instr (BLOCK_EXEC s) |> trace1_instr st
       | BLOCK_EXEC s -> (
           match trace1_instr st (Instr s) with
