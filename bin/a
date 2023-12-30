@@ -38,6 +38,10 @@ let movement = ref motion_cycles
 let display = ref update_cycles
 let ( += ) r n = r := !r + n
 
+let t = ref 0.
+let d = ref 0
+let cycles_per_sec = ref 0
+
 let draw_game () =
   let open Raylib in
   begin_drawing ();
@@ -54,13 +58,15 @@ let draw_game () =
     Robot.(!all_robots);
 
   draw_fps (padding + 5) (padding + 5);
-  c += update_cycles;
   draw_text
-    (Printf.sprintf "CYCLES %d" !c)
-    (padding + 5 + 100) (padding + 5) 20 Color.black;
+    (Printf.sprintf "CYCLES %d (%d)" !c !cycles_per_sec)
+    (padding + 5 + 100)
+    (padding + 5) 20 Color.black;
   end_drawing ()
 
 let rec loop () =
+  t := Unix.time ();
+  c += 1;
   let open Robot in
   match Raylib.window_should_close () with
   | true -> Raylib.close_window ()
@@ -85,6 +91,9 @@ let rec loop () =
         draw_game ();
         display := update_cycles);
 
+      if Unix.time () = !t +. 1. then (
+        cycles_per_sec := !c - !d;
+        d := !c);
       flush stdout;
       loop ()
 

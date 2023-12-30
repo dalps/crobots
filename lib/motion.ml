@@ -29,8 +29,8 @@ let update_robot i (r : t) =
   (* update distance traveled on this heading and position *)
   if r.speed > 0 then (
     r.range <- r.range + (r.speed / click * robot_speed);
-    r.x <- r.org_x + (cos r.heading * (r.range / click) / 100000);
-    r.y <- r.org_y + (sin r.heading * (r.range / click) / 100000);
+    r.x <- r.org_x + (cos r.heading * (r.range / click) / 10_000);
+    r.y <- r.org_y + (sin r.heading * (r.range / click) / 10_000);
 
     (* check for collision into another robot *)
     Array.iteri

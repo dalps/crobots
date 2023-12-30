@@ -4,7 +4,7 @@ let turn_incr = 1
 let accel = 10
 let collision = 5
 
-let click = 50
+let click = 10
 let max_x = 1000
 let max_y = 1000
 
@@ -122,9 +122,9 @@ let damage () = !cur_robot.damage
 
 let speed () = !cur_robot.speed
 
-let loc_x () = !cur_robot.x
+let loc_x () = !cur_robot.x / click
 
-let loc_y () = !cur_robot.y
+let loc_y () = !cur_robot.y / click
 
 let rand = Random.int
 

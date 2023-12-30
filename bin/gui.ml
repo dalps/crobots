@@ -38,4 +38,14 @@ let draw_stats i (r : Robot.t) color =
     (spr "sc: %d" r.scan_degrees)
     (pos_x + 5)
     (pos_y + name_sep + (stat_height * 4))
+    20 Color.black;
+  draw_text
+    (spr "x: %d" (r.x / Robot.click))
+    (pos_x + 5 + 100)
+    (pos_y + name_sep + stat_height)
+    20 Color.black;
+  draw_text
+    (spr "y: %d" (r.y / Robot.click))
+    (pos_x + 5 + 100)
+    (pos_y + name_sep + (stat_height * 2))
     20 Color.black
