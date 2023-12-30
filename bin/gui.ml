@@ -25,13 +25,13 @@ let draw_stats i (r : Robot.t) color =
   draw_text (spr "%s" r.name) (pos_x + 5) (pos_y + 5) 20 Color.black;
   if r.status = Robot.DEAD then
     draw_text "(dead)" (pos_x + 200) (pos_y + 5) 20 Color.red;
-  draw_text (spr "dmg: %d" r.damage) (pos_x + 5)
+  draw_text (spr "d%%: %d" r.damage) (pos_x + 5)
     (pos_y + name_sep + stat_height)
     20 Color.black;
-  draw_text (spr "spd: %d" r.speed) (pos_x + 5)
+  draw_text (spr "sp: %d" r.speed) (pos_x + 5)
     (pos_y + name_sep + (stat_height * 2))
     20 Color.black;
-  draw_text (spr "hd : %d" r.heading) (pos_x + 5)
+  draw_text (spr "hd: %d" r.heading) (pos_x + 5)
     (pos_y + name_sep + (stat_height * 3))
     20 Color.black;
   draw_text

@@ -1,13 +1,14 @@
 let robot_speed = 7
 let turn_speed = 50
+let turn_incr = 1
 let accel = 10
 let collision = 5
 
-let click = 10
+let click = 50
 let max_x = 1000
 let max_y = 1000
 
-let scanning_duration = 5
+let scan_duration = 5
 
 let trig_scale = 100_000.
 let res_limit = 10
@@ -34,16 +35,18 @@ type t = {
   mutable d_speed : int;
   mutable accel : int;
   mutable heading : int;
+  mutable turret_heading : int;
   mutable last_heading : int;
   mutable d_heading : int;
   mutable scan_degrees : int;
+  mutable scan_cycles : int;
+  mutable scan_res : int;
   mutable reload : int;
   mutable program : Ast.program;
   mutable ep : Ast.expression;
   mutable env : Memory.env_stack;
   mutable mem : Memory.memory;
   mutable missiles : Missile.t array;
-  mutable scanning_cycles : int;
 }
 
 let init () =
@@ -64,16 +67,18 @@ let init () =
     d_speed = 0;
     accel = 0;
     heading = 0;
+    turret_heading = 0;
     last_heading = 0;
     d_heading = 0;
     scan_degrees = 0;
+    scan_cycles = 0;
+    scan_res = 0;
     reload = 0;
     missiles = Array.init 2 (fun _ -> Missile.init ());
     program = EMPTY;
     ep = CALL ("main", []);
     env = Memory.init_stack ();
     mem = Memory.init_memory ();
-    scanning_cycles = 0;
   }
 
 let cur_robot = ref (init ())
@@ -92,7 +97,7 @@ let cannon degree range =
       Array.iter
         (fun (m : Missile.t) ->
           if m.status = AVAIL then (
-            !cur_robot.scan_degrees <- degree;
+            !cur_robot.turret_heading <- degree;
             !cur_robot.reload <- Missile.reload_cycles;
             m.status <- FLYING;
             m.beg_x <- !cur_robot.x;
@@ -144,8 +149,9 @@ let scan degree resolution =
   let res = if abs resolution > res_limit then res_limit else resolution in
   let degree = degree_of_int degree in
   let close_dist = ref 0. in
-  !cur_robot.scanning_cycles <- scanning_duration;
+  !cur_robot.scan_cycles <- scan_duration;
   !cur_robot.scan_degrees <- degree;
+  !cur_robot.scan_res <- res;
   try
     Array.iter
       (fun r ->

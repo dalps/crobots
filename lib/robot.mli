@@ -17,20 +17,23 @@ type t = {
   mutable d_speed : int;
   mutable accel : int;
   mutable heading : int;
+  mutable turret_heading : int;
   mutable last_heading : int;
   mutable d_heading : int;
   mutable scan_degrees : int;
+  mutable scan_cycles : int;
+  mutable scan_res : int;
   mutable reload : int;
   mutable program : Ast.program;
   mutable ep : Ast.expression;
   mutable env : Memory.env_stack;
   mutable mem : Memory.memory;
   mutable missiles : Missile.t array;
-  mutable scanning_cycles : int;
 }
 
 val robot_speed : int
 val turn_speed : int
+val turn_incr : int
 val accel : int
 val collision : int
 val click : int

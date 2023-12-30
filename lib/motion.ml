@@ -134,8 +134,8 @@ let update_missiles (r : t) =
 let update_all_robots =
   Array.iteri (fun i r ->
       update_missiles r;
-      if r.scanning_cycles > 0 then r.scanning_cycles <- r.scanning_cycles - 1
-      else r.scanning_cycles <- 0;
+      if r.scan_cycles > 0 then r.scan_cycles <- r.scan_cycles - 1
+      else r.scan_cycles <- 0;
       match (r.status, r.damage) with
       | DEAD, _ -> ()
       | ALIVE, d when d >= 100 ->

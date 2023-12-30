@@ -9,7 +9,7 @@ let turret_width = tank_width *. 0.7
 let cannon_width = tank_width *. 0.2
 let cannon_height = tank_width *. 1.2
 let missile_width = cannon_width *. 0.8
-let missile_height = 20.
+let missile_height = 500.
 let scan_height = 700.
 
 let deg2rad = Float.pi /. 180.
@@ -76,32 +76,26 @@ let draw_sprite (s : t) (r : Robot.t) =
   let open Missile in
   Array.iteri
     (fun i (m : t) ->
-      if m.status = FLYING then (
-        Printf.printf "drawing missile %d at %d,%d; travel %d/%d\n" i m.cur_x
-          m.cur_y m.travelled m.range;
+      if m.status = FLYING then
         draw_rectangle_pro s.missiles.(i) (Vector2.create 0. 0.)
           (m.heading |> float_of_int)
-          Color.black))
+          Color.black)
     r.missiles;
-  let res = 10. in
+  let res = r.scan_res |> float_of_int in
+  let dir = r.scan_degrees |> float_of_int in
   let l = scan_height *. Float.cos (deg2rad *. res) in
   let p = padding |> float_of_int in
   let cos x = Float.cos (deg2rad *. x) in
   let sin x = Float.sin (deg2rad *. x) in
-  Printf.printf "scanning %d\n" r.scanning_cycles;
-  if r.scanning_cycles > 0 then
+  if r.scan_cycles > 0 then
     draw_triangle
       (Vector2.create (p +. (r.x |> float_of_int)) (p +. (r.y |> float_of_int)))
       (Vector2.create
-         (p +. (r.x |> float_of_int)
-         +. (l *. cos ((r.scan_degrees |> float_of_int) +. res)))
-         (p +. (r.y |> float_of_int)
-         +. (l *. sin ((r.scan_degrees |> float_of_int) +. res))))
+         (p +. (r.x |> float_of_int) +. (l *. cos (dir +. res)))
+         (p +. (r.y |> float_of_int) +. (l *. sin (dir +. res))))
       (Vector2.create
-         (p +. (r.x |> float_of_int)
-         +. (l *. cos ((r.scan_degrees |> float_of_int) -. res)))
-         (p +. (r.y |> float_of_int)
-         +. (l *. sin ((r.scan_degrees |> float_of_int) -. res))))
+         (p +. (r.x |> float_of_int) +. (l *. cos (dir -. res)))
+         (p +. (r.y |> float_of_int) +. (l *. sin (dir -. res))))
       (fade Color.red 0.1);
   (* decrease scan sprite timer; if 0 then stop drawing *)
   draw_rectangle_pro s.tank
@@ -116,11 +110,11 @@ let draw_sprite (s : t) (r : Robot.t) =
        ((tank_width /. 2.)
        -. ((tank_width -. turret_width) /. 2.)
        -. ((turret_width -. cannon_width) /. 2.)))
-    (r.scan_degrees - 90 |> float_of_int)
+    (r.turret_heading - 90 |> float_of_int)
     color_cannon;
   draw_rectangle_pro s.turret
     (Vector2.create
        ((tank_width /. 2.) -. ((tank_width -. turret_width) /. 2.))
        ((tank_width /. 2.) -. ((tank_width -. turret_width) /. 2.)))
-    (r.scan_degrees - 90 |> float_of_int)
+    (r.turret_heading - 90 |> float_of_int)
     color_turret
