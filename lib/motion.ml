@@ -82,7 +82,9 @@ let update_robot i (r : t) =
 
 let exp_damage dist =
   dist |> float_of_int |> fun x ->
-  max 0 ((x *. (-1. /. 3.)) +. (35. /. 3.) |> int_of_float)
+  (if x < 20. then (-1. /. 3. *. x) +. (35. /. 3.)
+   else max 0. ((-1. /. 10. *. x) +. 7.))
+  |> Float.round |> int_of_float
 
 let update_missiles (r : t) =
   Array.iter
@@ -91,6 +93,8 @@ let update_missiles (r : t) =
       | FLYING ->
           let x = ref 0 in
           let y = ref 0 in
+
+          (* update missile position *)
           m.travelled <- m.travelled + Missile.mis_speed;
           if m.travelled > m.range then m.travelled <- m.range;
           m.cur_x <- m.beg_x + (cos m.heading * (m.travelled / click) / 10_000);
@@ -112,19 +116,25 @@ let update_missiles (r : t) =
             m.status <- EXPLODING;
             y := (max_y * click) - 1);
 
+          (* missile reached target range, explode *)
           if m.travelled = m.range then m.status <- EXPLODING;
 
+          (* inflict explosion damage on other robots *)
           if m.status = EXPLODING then
             Array.iter
-              (fun (r : t) ->
-                if r.status <> DEAD then (
-                  x := (r.x - m.cur_x) / click;
-                  y := (r.x - m.cur_x) / click;
+              (fun (r' : t) ->
+                if r'.status <> DEAD then (
+                  x := (r'.x - m.cur_x) / click;
+                  y := (r'.y - m.cur_y) / click;
                   let dist = sqrt ((!x * !x) + (!y * !y)) in
-                  r.damage <- r.damage + exp_damage dist;
-                  if r.damage >= 100 then (
-                    r.damage <- 100;
-                    r.status <- DEAD)))
+                  let dmg = exp_damage dist in
+                  r'.damage <- r'.damage + dmg;
+                  if dmg <> 0 then
+                    Printf.printf "%s sustained %d damage by %s's missile\n"
+                      r'.name dmg r.name;
+                  if r'.damage >= 100 then (
+                    r'.damage <- 100;
+                    r'.status <- DEAD)))
               !all_robots
       | EXPLODING ->
           if m.count <= 0 then m.status <- AVAIL else m.count <- m.count - 1
