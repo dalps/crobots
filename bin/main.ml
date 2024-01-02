@@ -67,12 +67,18 @@ let rec loop () =
   | false ->
       Array.iter
         (fun r ->
-          match r.status with
-          | ALIVE ->
-              cur_robot := r;
-              r.ep <- Trace.trace1_expr (r.env, r.mem) r.ep;
-              Memory.janitor r.env r.mem
-          | DEAD -> ())
+          try
+            match r.status with
+            | ALIVE ->
+                cur_robot := r;
+                r.ep <- Trace.trace1_expr (r.env, r.mem) r.ep;
+                Memory.janitor r.env r.mem
+            | DEAD -> ()
+          with _ ->
+            Printf.printf "%s ended, restarting...\n" r.name;
+            r.ep <- CALL ("main", []);
+            r.env <- Memory.init_stack ();
+            r.mem <- Memory.init_memory ())
         !all_robots;
 
       decr movement;
