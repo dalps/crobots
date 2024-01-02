@@ -87,7 +87,6 @@ let exp_damage dist =
 let update_missiles (r : t) =
   Array.iter
     (fun (m : Missile.t) ->
-      if m.count <= 0 then m.status <- AVAIL else m.count <- m.count - 1;
       match m.status with
       | FLYING ->
           let x = ref 0 in
@@ -127,7 +126,8 @@ let update_missiles (r : t) =
                     r.damage <- 100;
                     r.status <- DEAD)))
               !all_robots
-      | EXPLODING -> ()
+      | EXPLODING ->
+          if m.count <= 0 then m.status <- AVAIL else m.count <- m.count - 1
       | _ -> ())
     r.missiles
 

@@ -48,4 +48,18 @@ let draw_stats i (r : Robot.t) color =
     (spr "y: %d" (r.y / Robot.click))
     (pos_x + 5 + 100)
     (pos_y + name_sep + (stat_height * 2))
-    20 Color.black
+    20 Color.black;
+  draw_text (spr "rl: %d" r.reload)
+    (pos_x + 5 + 100)
+    (pos_y + name_sep + (stat_height * 3))
+    20 Color.black;
+  Array.iteri
+    (fun i (m : Missile.t) ->
+      draw_text
+        (spr "m%d: %s %d, %d r:%d/%d" i
+           (Missile.string_of_status m.status)
+           (m.cur_x / Robot.click) (m.cur_y / Robot.click) m.travelled m.range)
+        (pos_x + 5 + 100)
+        (pos_y + name_sep + (stat_height * (4 + i)))
+        20 Color.black)
+    r.missiles

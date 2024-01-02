@@ -5,6 +5,11 @@ let explosion_cycles = 5
 
 type status = AVAIL | FLYING | EXPLODING
 
+let string_of_status = function
+  | AVAIL -> "avl"
+  | FLYING -> "fly"
+  | EXPLODING -> "exp"
+
 type t = {
   mutable status : status;
   mutable cur_x : int;
