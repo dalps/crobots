@@ -108,8 +108,6 @@ let cannon degree range =
             m.range <- range * click;
             m.travelled <- 0;
             m.count <- Missile.explosion_cycles;
-            Printf.printf "[CANN] %s fired a missile with range %d\n"
-              !cur_robot.name range;
             raise Exit))
         !cur_robot.missiles;
       0
@@ -175,9 +173,7 @@ let scan degree resolution =
 
         if dd >= d1 && dd <= d2 then
           let distance = Float.sqrt ((x *. x) +. (y *. y)) in
-          if distance < !close_dist || !close_dist = 0. then (
-            Printf.printf "[SCAN] %s detected %s at distance %2.0f\n"
-              !cur_robot.name r.name distance;
-            close_dist := distance)))
+          if distance < !close_dist || !close_dist = 0. then
+            close_dist := distance))
     !all_robots;
   !close_dist |> int_of_float

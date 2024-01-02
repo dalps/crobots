@@ -40,45 +40,51 @@ let update_robot i (r : t) =
           && abs (r.x - r'.x) < click
           && abs (r.y - r'.y) < click
         then (
-          Printf.printf "%d:%s collided with %d:%s\n" i r.name i' r'.name;
           r.speed <- 0;
           r.d_speed <- 0;
-          r.damage <- r.damage + collision;
+          r.damage <- min 100 (r.damage + collision);
           r'.speed <- 0;
           r'.d_speed <- 0;
-          r'.damage <- r'.damage + collision))
+          r'.damage <- min 100 (r'.damage + collision);
+          Printf.printf "%s collided with %s (D%%: %d)\n" r.name r'.name
+            r.damage))
       !all_robots;
 
-    (* check for collisions with a wall *)
+    (* check for collision into a wall *)
     (match r.x with
     | x when x < 0 ->
-        Printf.printf "%d:%s hit west wall\n" i r.name;
         r.x <- 0;
         r.speed <- 0;
         r.d_speed <- 0;
-        r.damage <- r.damage + collision
+        r.damage <- min 100 (r.damage + collision);
+        Printf.printf "%s hit west wall (D%%: %d)\n" r.name r.damage
     | x when x > max_x * click ->
-        Printf.printf "%d:%s hit east wall\n" i r.name;
         r.x <- (max_x * click) - 1;
         r.speed <- 0;
         r.d_speed <- 0;
-        r.damage <- r.damage + collision
+        r.damage <- min 100 (r.damage + collision);
+        Printf.printf "%s hit east wall (D%%: %d)\n" r.name r.damage
     | _ -> ());
 
-    match r.y with
+    (match r.y with
     | y when y < 0 ->
-        Printf.printf "%d:%s hit south wall\n" i r.name;
         r.y <- 0;
         r.speed <- 0;
         r.d_speed <- 0;
-        r.damage <- r.damage + collision
+        r.damage <- min 100 (r.damage + collision);
+        Printf.printf "%s hit south wall (D%%: %d)\n" r.name r.damage
     | y when y > max_y * click ->
-        Printf.printf "%d:%s hit north wall\n" i r.name;
         r.y <- (max_y * click) - 1;
         r.speed <- 0;
         r.d_speed <- 0;
-        r.damage <- r.damage + collision
-    | _ -> ())
+        r.damage <- min 100 (r.damage + collision);
+        Printf.printf "%s hit north wall (D%%: %d)\n" r.name r.damage
+    | _ -> ());
+
+    if r.damage >= 100 then (
+      Printf.printf "%s was killed by collision\n" r.name;
+      r.damage <- 100;
+      r.status <- DEAD))
 
 let exp_damage dist =
   dist |> float_of_int |> fun x ->
@@ -128,11 +134,13 @@ let update_missiles (r : t) =
                   y := (r'.y - m.cur_y) / click;
                   let dist = sqrt ((!x * !x) + (!y * !y)) in
                   let dmg = exp_damage dist in
-                  r'.damage <- r'.damage + dmg;
+                  r'.damage <- min 100 (r'.damage + dmg);
                   if dmg <> 0 then
-                    Printf.printf "%s sustained %d damage by %s's missile\n"
-                      r'.name dmg r.name;
+                    Printf.printf "%s was hit by %s's missile (D%%: %d)\n"
+                      r'.name r.name r'.damage;
                   if r'.damage >= 100 then (
+                    Printf.printf "%s was killed by %s's missile\n" r'.name
+                      r.name;
                     r'.damage <- 100;
                     r'.status <- DEAD)))
               !all_robots
