@@ -62,8 +62,14 @@ let draw_game () =
 
 let rec loop () =
   let open Robot in
+  let robots_left =
+    Array.fold_left
+      (fun n r -> n + if r.status = ALIVE then 1 else 0)
+      0 !all_robots
+  in
   match Raylib.window_should_close () with
   | true -> Raylib.close_window ()
+  | false when robots_left <= 1 -> ()
   | false ->
       Array.iter
         (fun r ->
@@ -93,6 +99,35 @@ let rec loop () =
 
       flush stdout;
       loop ()
+
+let rec endgame result =
+  let open Robot in
+  match Raylib.window_should_close () with
+  | true -> Raylib.close_window ()
+  | false ->
+      let open Raylib in
+      begin_drawing ();
+      
+      let fontsize = 50 in
+      let w = measure_text result fontsize in
+      draw_text result
+        ((Gui.window_width / 2) - (w / 2))
+        ((Gui.window_height / 2) - (fontsize / 2))
+        fontsize Color.gray;
+
+      decr movement;
+      if !movement <= 0 then (
+        Motion.update_all_robots !all_robots;
+        movement := motion_cycles);
+
+      decr display;
+      if !display <= 0 then (
+        draw_game ();
+        display := update_cycles);
+
+      end_drawing ();
+
+      endgame result
 
 let _ =
   let filenames = Cmd.parse () in
@@ -137,4 +172,40 @@ let _ =
   let open Raylib in
   init_window window_width window_height "crobots";
   set_target_fps 59;
-  loop ()
+  loop ();
+
+  (* allow any flying missile to explode *)
+  while
+    Array.exists
+      (fun r ->
+        Array.exists (fun (m : Missile.t) -> m.status <> AVAIL) r.missiles)
+      !all_robots
+  do
+    decr movement;
+    if !movement <= 0 then (
+      Motion.update_all_robots !all_robots;
+      movement := motion_cycles);
+
+    decr display;
+    if !display <= 0 then (
+      draw_game ();
+      display := update_cycles)
+  done;
+
+  let winner =
+    Array.fold_left
+      (fun acc r ->
+        match r.status with
+        | ALIVE -> Some r
+        | _ -> acc)
+      None !all_robots
+  in
+
+  let winner_msg =
+    Option.fold ~none:"It's a tie"
+      ~some:(fun r -> Printf.sprintf "Winner is: %s" r.name)
+      winner
+  in
+
+  print_endline winner_msg;
+  endgame winner_msg
