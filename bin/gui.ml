@@ -22,7 +22,7 @@ let draw_stats i (r : Robot.t) color =
   let open Raylib in
   draw_rectangle pos_x pos_y statbox_width statbox_height (fade color 0.25);
   draw_rectangle_lines pos_x pos_y statbox_width statbox_height color;
-  draw_text (spr "%s" r.name) (pos_x + 5) (pos_y + 5) 20 Color.black;
+  draw_text (spr "%d. %s" i r.name) (pos_x + 5) (pos_y + 5) 20 Color.black;
   if r.status = Robot.DEAD then
     draw_text "(dead)" (pos_x + 200) (pos_y + 5) 20 Color.red;
   draw_text (spr "d%%: %d" r.damage) (pos_x + 5)

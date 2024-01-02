@@ -10,7 +10,8 @@ let cannon_width = tank_width *. 0.2
 let cannon_height = tank_width *. 1.2
 let missile_width = cannon_width *. 0.8
 let missile_height = missile_width
-let scan_height = 700.
+let scan_height = 70.
+let explosion_radius = 50.
 
 let deg2rad = Float.pi /. 180.
 
@@ -80,47 +81,61 @@ let draw_sprite (s : t) (r : Robot.t) =
   let open Missile in
   Array.iteri
     (fun i (m : t) ->
-      if m.status = FLYING then
-        draw_rectangle_pro s.missiles.(i) (Vector2.create 0. 0.)
-          (m.heading |> float_of_int)
-          Color.black)
+      match m.status with
+      | FLYING ->
+          draw_rectangle_pro s.missiles.(i) (Vector2.create 0. 0.)
+            (m.heading |> float_of_int)
+            Color.black
+      | EXPLODING ->
+          let open Robot in
+          let x = m.cur_x / click in
+          let y = m.cur_y / click in
+          draw_circle x y explosion_radius (fade Color.yellow 0.5)
+      | _ -> ())
     r.missiles;
-  let res = r.scan_res |> float_of_int in
-  let dir = r.scan_degrees |> float_of_int in
-  let l = scan_height *. Float.cos (deg2rad *. res) in
-  let p = padding |> float_of_int in
-  let cos x = Float.cos (deg2rad *. x) in
-  let sin x = Float.sin (deg2rad *. x) in
-  let x = r.x / Robot.click in
-  let y = r.y / Robot.click in
-  if r.scan_cycles > 0 then
-    draw_triangle
-      (Vector2.create (p +. (x |> float_of_int)) (p +. (y |> float_of_int)))
-      (Vector2.create
-         (p +. (x |> float_of_int) +. (l *. cos (dir +. res)))
-         (p +. (y |> float_of_int) +. (l *. sin (dir +. res))))
-      (Vector2.create
-         (p +. (x |> float_of_int) +. (l *. cos (dir -. res)))
-         (p +. (y |> float_of_int) +. (l *. sin (dir -. res))))
-      (fade Color.red 0.1);
-  (* decrease scan sprite timer; if 0 then stop drawing *)
-  draw_rectangle_pro s.tank
-    (Vector2.create (tank_width /. 2.) (tank_width /. 2.))
-    (r.heading |> float_of_int)
-    s.color;
-  draw_rectangle_pro s.cannon
-    (Vector2.create
-       ((tank_width /. 2.)
-       -. ((tank_width -. turret_width) /. 2.)
-       -. ((turret_width -. cannon_width) /. 2.))
-       ((tank_width /. 2.)
-       -. ((tank_width -. turret_width) /. 2.)
-       -. ((turret_width -. cannon_width) /. 2.)))
-    (r.turret_heading - 90 |> float_of_int)
-    color_cannon;
-  draw_rectangle_pro s.turret
-    (Vector2.create
-       ((tank_width /. 2.) -. ((tank_width -. turret_width) /. 2.))
-       ((tank_width /. 2.) -. ((tank_width -. turret_width) /. 2.)))
-    (r.turret_heading - 90 |> float_of_int)
-    color_turret
+  match r.status with
+  | ALIVE ->
+      let res = r.scan_res |> float_of_int in
+      let dir = r.scan_degrees |> float_of_int in
+      let l = scan_height *. Float.cos (deg2rad *. res) in
+      let cos x = Float.cos (deg2rad *. x) in
+      let sin x = Float.sin (deg2rad *. x) in
+      let x = (r.x / Robot.click) + padding in
+      let y = (r.y / Robot.click) + padding in
+      if r.scan_cycles > 0 then (
+        draw_triangle
+          (Vector2.create (x |> float_of_int) (y |> float_of_int))
+          (Vector2.create
+             ((x |> float_of_int) +. (l *. cos (dir +. res)))
+             ((y |> float_of_int) +. (l *. sin (dir +. res))))
+          (Vector2.create
+             ((x |> float_of_int) +. (l *. cos (dir -. res)))
+             ((y |> float_of_int) +. (l *. sin (dir -. res))))
+          (fade Color.red 0.1);
+        draw_circle_lines
+          (x |> float_of_int |> int_of_float)
+          (y |> float_of_int |> int_of_float)
+          scan_height (fade Color.red 0.1));
+      (* decrease scan sprite timer; if 0 then stop drawing *)
+      draw_rectangle_pro s.tank
+        (Vector2.create (tank_width /. 2.) (tank_width /. 2.))
+        (r.heading |> float_of_int)
+        s.color;
+      draw_rectangle_pro s.cannon
+        (Vector2.create
+           ((tank_width /. 2.)
+           -. ((tank_width -. turret_width) /. 2.)
+           -. ((turret_width -. cannon_width) /. 2.))
+           ((tank_width /. 2.)
+           -. ((tank_width -. turret_width) /. 2.)
+           -. ((turret_width -. cannon_width) /. 2.)))
+        (r.turret_heading - 90 |> float_of_int)
+        color_cannon;
+      draw_rectangle_pro s.turret
+        (Vector2.create
+           ((tank_width /. 2.) -. ((tank_width -. turret_width) /. 2.))
+           ((tank_width /. 2.) -. ((tank_width -. turret_width) /. 2.)))
+        (r.turret_heading - 90 |> float_of_int)
+        color_turret;
+      draw_text r.name (x - (measure_text r.name 5 / 2)) (y + 55) 5 Color.gray
+  | DEAD -> ()

@@ -9,7 +9,7 @@ module Cmd = struct
     let input_files = ref [] in
 
     let speclist = [] in
-    let anon_fun filename = input_files := filename :: !input_files in
+    let anon_fun filename = input_files := !input_files @ [ filename ] in
     Arg.parse speclist anon_fun usage_msg;
 
     match !input_files with
@@ -57,7 +57,8 @@ let draw_game () =
   c += update_cycles;
   draw_text
     (Printf.sprintf "CYCLES %d" !c)
-    (padding + 5 + 100) (padding + 5) 20 Color.black;
+    (padding + 5 + 100)
+    (padding + 5) 20 Color.black;
   end_drawing ()
 
 let rec loop () =
@@ -81,7 +82,6 @@ let rec loop () =
                 Memory.janitor r.env r.mem
             | DEAD -> ()
           with _ ->
-            Printf.printf "%s ended, restarting...\n" r.name;
             r.ep <- CALL ("main", []);
             r.env <- Memory.init_stack ();
             r.mem <- Memory.init_memory ())
