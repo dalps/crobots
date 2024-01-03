@@ -115,8 +115,12 @@ and trace1_expr ((env, mem) as st) e =
   | CALL (f, es) -> trace_args st [] f es
   | CALL_EXEC s -> (
       match trace1_instr st (Instr s) with
-      | St -> NIL
-      | Ret n -> CONST n
+      | St ->
+          ignore (pop_blocks env);
+          NIL
+      | Ret n ->
+          ignore (pop_blocks env);
+          CONST n
       | Instr s' -> CALL_EXEC s')
   | UNARY_EXPR (uop, CONST n) -> CONST ((fun_of_uop uop) n)
   | UNARY_EXPR (uop, e) ->
@@ -176,9 +180,7 @@ and trace1_instr ((env, mem) as st) s =
               St)
       | RET o ->
           Option.fold o ~none:St ~some:(function
-            | CONST n ->
-                ignore (pop_blocks env);
-                Ret n
+            | CONST n -> Ret n
             | e ->
                 let e' = trace1_expr st e in
                 Instr (RET (Some e')))
