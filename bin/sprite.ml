@@ -137,5 +137,12 @@ let draw_sprite (s : t) (r : Robot.t) =
            ((tank_width /. 2.) -. ((tank_width -. turret_width) /. 2.)))
         (r.turret_heading - 90 |> float_of_int)
         color_turret;
-      draw_text r.name (x - (measure_text r.name 5 / 2)) (y + 55) 5 Color.gray
+      let v =
+        measure_text_ex !stat_font r.name
+          (stat_fontsize |> float_of_int)
+          font_spacing
+      in
+      draw_stat_text r.name
+        (x - (Vector2.x v /. 2. |> int_of_float))
+        (y + 55) Color.gray
   | DEAD -> ()

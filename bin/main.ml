@@ -53,12 +53,10 @@ let draw_game () =
       draw_stats i r sprites.(i).color)
     Robot.(!all_robots);
 
-  draw_fps (padding + 5) (padding + 5);
+  Gui.draw_fps (get_fps ());
   c += update_cycles;
-  draw_text
-    (Printf.sprintf "CYCLES %d" !c)
-    (padding + 5 + 100)
-    (padding + 5) 20 Color.black;
+  draw_cycles !c;
+
   end_drawing ()
 
 let rec loop () =
@@ -103,18 +101,10 @@ let rec loop () =
 let rec endgame result =
   let open Robot in
   match Raylib.window_should_close () with
-  | true -> Raylib.close_window ()
+  | true ->
+      unload_fonts ();
+      Raylib.close_window ()
   | false ->
-      let open Raylib in
-      begin_drawing ();
-      
-      let fontsize = 50 in
-      let w = measure_text result fontsize in
-      draw_text result
-        ((Gui.window_width / 2) - (w / 2))
-        ((Gui.window_height / 2) - (fontsize / 2))
-        fontsize Color.gray;
-
       decr movement;
       if !movement <= 0 then (
         Motion.update_all_robots !all_robots;
@@ -123,9 +113,8 @@ let rec endgame result =
       decr display;
       if !display <= 0 then (
         draw_game ();
+        draw_endgame result;
         display := update_cycles);
-
-      end_drawing ();
 
       endgame result
 
@@ -171,6 +160,9 @@ let _ =
   all_robots := Array.of_list robots;
   let open Raylib in
   init_window window_width window_height "crobots";
+
+  load_fonts ();
+
   set_target_fps 59;
   loop ();
 
