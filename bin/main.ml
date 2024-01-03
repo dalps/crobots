@@ -1,6 +1,4 @@
 open Crobots
-open Sprite
-open Gui
 
 let usage_msg = "crobots <robot-programs>"
 
@@ -32,34 +30,7 @@ let read_file filename =
   !out
 
 let motion_cycles = 15
-let update_cycles = 30
-let c = ref 0
 let movement = ref motion_cycles
-let display = ref update_cycles
-let ( += ) r n = r := !r + n
-
-let draw_game () =
-  let open Raylib in
-  begin_drawing ();
-  clear_background Color.raywhite;
-
-  draw_rectangle_lines padding padding arena_width arena_width Color.gray;
-
-  Array.iteri
-    (fun i (r : Robot.t) ->
-      let open Sprite in
-      update_sprite sprites.(i) r;
-      draw_sprite sprites.(i) r;
-      draw_stats i r sprites.(i).color)
-    Robot.(!all_robots);
-
-  draw_fps (padding + 5) (padding + 5);
-  c += update_cycles;
-  draw_text
-    (Printf.sprintf "CYCLES %d" !c)
-    (padding + 5 + 100)
-    (padding + 5) 20 Color.black;
-  end_drawing ()
 
 let rec loop () =
   let open Robot in
@@ -68,66 +39,29 @@ let rec loop () =
       (fun n r -> n + if r.status = ALIVE then 1 else 0)
       0 !all_robots
   in
-  match Raylib.window_should_close () with
-  | true -> Raylib.close_window ()
-  | false when robots_left <= 1 -> ()
-  | false ->
-      Array.iter
-        (fun r ->
-          try
-            match r.status with
-            | ALIVE ->
-                cur_robot := r;
-                r.ep <- Trace.trace1_expr (r.env, r.mem) r.ep;
-                Memory.janitor r.env r.mem
-            | DEAD -> ()
-          with _ ->
-            r.ep <- CALL ("main", []);
-            r.env <- Memory.init_stack ();
-            r.mem <- Memory.init_memory ())
-        !all_robots;
+  if robots_left > 1 then (
+    Array.iter
+      (fun r ->
+        try
+          match r.status with
+          | ALIVE ->
+              cur_robot := r;
+              r.ep <- Trace.trace1_expr (r.env, r.mem) r.ep;
+              Memory.janitor r.env r.mem
+          | DEAD -> ()
+        with _ ->
+          r.ep <- CALL ("main", []);
+          r.env <- Memory.init_stack ();
+          r.mem <- Memory.init_memory ())
+      !all_robots;
 
-      decr movement;
-      if !movement <= 0 then (
-        Motion.update_all_robots !all_robots;
-        movement := motion_cycles);
+    decr movement;
+    if !movement <= 0 then (
+      Motion.update_all_robots !all_robots;
+      movement := motion_cycles);
 
-      decr display;
-      if !display <= 0 then (
-        draw_game ();
-        display := update_cycles);
-
-      flush stdout;
-      loop ()
-
-let rec endgame result =
-  let open Robot in
-  match Raylib.window_should_close () with
-  | true -> Raylib.close_window ()
-  | false ->
-      let open Raylib in
-      begin_drawing ();
-      
-      let fontsize = 50 in
-      let w = measure_text result fontsize in
-      draw_text result
-        ((Gui.window_width / 2) - (w / 2))
-        ((Gui.window_height / 2) - (fontsize / 2))
-        fontsize Color.gray;
-
-      decr movement;
-      if !movement <= 0 then (
-        Motion.update_all_robots !all_robots;
-        movement := motion_cycles);
-
-      decr display;
-      if !display <= 0 then (
-        draw_game ();
-        display := update_cycles);
-
-      end_drawing ();
-
-      endgame result
+    flush stdout;
+    loop ())
 
 let _ =
   let filenames = Cmd.parse () in
@@ -147,8 +81,8 @@ let _ =
   in
   let open Robot in
   let robots =
-    List.mapi
-      (fun i (f, p) ->
+    List.map
+      (fun (f, p) ->
         let r = init () in
         cur_robot := r;
         Trace.trace_instr (r.env, r.mem) (Instr p) |> ignore;
@@ -160,18 +94,11 @@ let _ =
         r.y <- Random.int 1000 * click;
         r.last_y <- r.y;
         r.org_y <- r.y;
-        sprites.(i) <-
-          Sprite.create
-            (r.x / click |> float_of_int)
-            (r.y / click |> float_of_int)
-            colors.(i);
         r)
       programs
   in
   all_robots := Array.of_list robots;
-  let open Raylib in
-  init_window window_width window_height "crobots";
-  set_target_fps 59;
+
   loop ();
 
   (* allow any flying missile to explode *)
@@ -184,12 +111,7 @@ let _ =
     decr movement;
     if !movement <= 0 then (
       Motion.update_all_robots !all_robots;
-      movement := motion_cycles);
-
-    decr display;
-    if !display <= 0 then (
-      draw_game ();
-      display := update_cycles)
+      movement := motion_cycles)
   done;
 
   let winner =
@@ -207,5 +129,4 @@ let _ =
       winner
   in
 
-  print_endline winner_msg;
-  endgame winner_msg
+  print_endline winner_msg
