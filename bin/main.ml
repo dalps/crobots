@@ -40,10 +40,7 @@ let ( += ) r n = r := !r + n
 
 let draw_game () =
   let open Raylib in
-  begin_drawing ();
-  clear_background Color.raywhite;
-
-  draw_rectangle_lines padding padding arena_width arena_width Color.gray;
+  draw_arena ();
 
   Array.iteri
     (fun i (r : Robot.t) ->
@@ -55,9 +52,7 @@ let draw_game () =
 
   Gui.draw_fps (get_fps ());
   c += update_cycles;
-  draw_cycles !c;
-
-  end_drawing ()
+  draw_cycles !c
 
 let rec loop () =
   let open Robot in
@@ -92,7 +87,11 @@ let rec loop () =
 
       decr display;
       if !display <= 0 then (
+        let open Raylib in
+        begin_drawing ();
+        clear_background background_color;
         draw_game ();
+        end_drawing ();
         display := update_cycles);
 
       flush stdout;
@@ -112,8 +111,12 @@ let rec endgame result =
 
       decr display;
       if !display <= 0 then (
+        let open Raylib in
+        begin_drawing ();
+        clear_background background_color;
         draw_game ();
         draw_endgame result;
+        end_drawing ();
         display := update_cycles);
 
       endgame result
@@ -163,7 +166,7 @@ let _ =
 
   load_fonts ();
 
-  set_target_fps 59;
+  set_target_fps 60;
   loop ();
 
   (* allow any flying missile to explode *)
@@ -195,7 +198,7 @@ let _ =
 
   let winner_msg =
     Option.fold ~none:"It's a tie"
-      ~some:(fun r -> Printf.sprintf "Winner is: %s" r.name)
+      ~some:(fun r -> Printf.sprintf "%s won the match" r.name)
       winner
   in
 
