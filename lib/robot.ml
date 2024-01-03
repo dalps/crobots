@@ -87,6 +87,40 @@ let all_robots = ref [||]
 let degree_of_int d = abs d mod 360
 let perc_of_int n = max 0 n |> min 100
 
+let scan degree resolution =
+  let res = if abs resolution > res_limit then res_limit else resolution in
+  let degree = degree_of_int degree in
+  let close_dist = ref 0. in
+  !cur_robot.scan_cycles <- scan_duration;
+  !cur_robot.scan_degrees <- degree;
+  !cur_robot.scan_res <- res;
+  Array.iter
+    (fun r ->
+      if r <> !cur_robot && r.status <> DEAD then (
+        let x = (!cur_robot.x / click) - (r.x / click) |> float_of_int in
+        let y = (!cur_robot.y / click) - (r.y / click) |> float_of_int in
+        let d = ref 0 in
+
+        if x <> 0. then
+          let d' = Float.atan (y /. x) *. rad2deg |> int_of_float in
+          match (r.x >= !cur_robot.x, r.y >= !cur_robot.y) with
+          | true, true -> d := d' (* 1st quadrant *)
+          | true, false -> d := 360 + d' (* 4th quadrant *)
+          | _ -> d := 180 + d' (* 2nd - 3rd quadrant *)
+        else d := if r.y > !cur_robot.y then 90 else 270;
+
+        let b = if degree > res && degree < 360 - res then 0 else 180 in
+        let dd = b + degree in
+        let d1 = b + !d - res in
+        let d2 = b + !d + res in
+
+        if dd >= d1 && dd <= d2 then
+          let distance = Float.sqrt ((x *. x) +. (y *. y)) in
+          if distance < !close_dist || !close_dist = 0. then
+            close_dist := distance))
+    !all_robots;
+  !close_dist |> int_of_float
+
 let cannon degree range =
   let range = if range > Missile.mis_range then Missile.mis_range else range in
   let degree = degree_of_int degree in
@@ -143,37 +177,3 @@ let atan x =
   x |> float_of_int
   |> ( *. ) (1. /. trig_scale)
   |> Float.atan |> ( *. ) rad2deg |> Float.round |> int_of_float
-
-let scan degree resolution =
-  let res = if abs resolution > res_limit then res_limit else resolution in
-  let degree = degree_of_int degree in
-  let close_dist = ref 0. in
-  !cur_robot.scan_cycles <- scan_duration;
-  !cur_robot.scan_degrees <- degree;
-  !cur_robot.scan_res <- res;
-  Array.iter
-    (fun r ->
-      if r <> !cur_robot && r.status <> DEAD then (
-        let x = (!cur_robot.x / click) - (r.x / click) |> float_of_int in
-        let y = (!cur_robot.y / click) - (r.y / click) |> float_of_int in
-        let d = ref 0 in
-
-        if x <> 0. then
-          let d' = Float.atan (y /. x) *. rad2deg |> int_of_float in
-          match (r.x >= !cur_robot.x, r.y >= !cur_robot.y) with
-          | true, true -> d := d' (* 1st quadrant *)
-          | true, false -> d := 360 + d' (* 4th quadrant *)
-          | _ -> d := 180 + d' (* 2nd - 3rd quadrant *)
-        else d := if r.y > !cur_robot.y then 90 else 270;
-
-        let b = if degree > res && degree < 360 - res then 0 else 180 in
-        let dd = b + degree in
-        let d1 = b + !d - res in
-        let d2 = b + !d + res in
-
-        if dd >= d1 && dd <= d2 then
-          let distance = Float.sqrt ((x *. x) +. (y *. y)) in
-          if distance < !close_dist || !close_dist = 0. then
-            close_dist := distance))
-    !all_robots;
-  !close_dist |> int_of_float
