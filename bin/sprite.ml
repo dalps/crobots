@@ -56,7 +56,7 @@ let sprites =
 let update_sprite (s : t) (r : Robot.t) =
   let open Robot in
   let x = r.x / click in
-  let y = r.y / click in
+  let y = (-1 * r.y / click) + arena_width in
   Rectangle.set_x s.tank (padding + x |> float_of_int);
   Rectangle.set_x s.turret (padding + x |> float_of_int);
   Rectangle.set_x s.cannon (padding + x |> float_of_int);
@@ -66,7 +66,7 @@ let update_sprite (s : t) (r : Robot.t) =
   Array.iter2
     (fun sprite (missile : Missile.t) ->
       let x = missile.cur_x / click in
-      let y = missile.cur_y / click in
+      let y = (-1 * missile.cur_y / click) + arena_width in
       Rectangle.set_x sprite (padding + x |> float_of_int);
       Rectangle.set_y sprite
         (padding + y
@@ -84,42 +84,30 @@ let draw_sprite (s : t) (r : Robot.t) =
       match m.status with
       | FLYING ->
           draw_rectangle_pro s.missiles.(i) (Vector2.create 0. 0.)
-            (m.heading |> float_of_int)
+            (-m.heading + 270 |> float_of_int)
             Color.black
       | EXPLODING ->
           let open Robot in
           let x = m.cur_x / click in
-          let y = m.cur_y / click in
+          let y = (-1 * m.cur_y / click) + arena_width in
           draw_circle x y explosion_radius (fade Color.yellow 0.5)
       | _ -> ())
     r.missiles;
   match r.status with
   | ALIVE ->
       let res = r.scan_res |> float_of_int in
-      let dir = r.scan_degrees |> float_of_int in
-      let l = scan_height *. Float.cos (deg2rad *. res) in
-      let cos x = Float.cos (deg2rad *. x) in
-      let sin x = Float.sin (deg2rad *. x) in
+      let dir = r.scan_degrees + 90 |> float_of_int in
       let x = (r.x / Robot.click) + padding in
-      let y = (r.y / Robot.click) + padding in
+      let y = (-1 * r.y / Robot.click) + arena_width + padding in
       if r.scan_cycles > 0 then (
-        draw_triangle
+        draw_circle_sector
           (Vector2.create (x |> float_of_int) (y |> float_of_int))
-          (Vector2.create
-             ((x |> float_of_int) +. (l *. cos (dir +. res)))
-             ((y |> float_of_int) +. (l *. sin (dir +. res))))
-          (Vector2.create
-             ((x |> float_of_int) +. (l *. cos (dir -. res)))
-             ((y |> float_of_int) +. (l *. sin (dir -. res))))
-          (fade Color.red 0.1);
-        draw_circle_lines
-          (x |> float_of_int |> int_of_float)
-          (y |> float_of_int |> int_of_float)
-          scan_height (fade Color.red 0.1));
+          scan_height (dir +. res) (dir -. res) 1 (fade Color.red 0.1);
+        draw_circle_lines x y scan_height (fade Color.red 0.1));
       (* decrease scan sprite timer; if 0 then stop drawing *)
       draw_rectangle_pro s.tank
         (Vector2.create (tank_width /. 2.) (tank_width /. 2.))
-        (r.heading |> float_of_int)
+        (-r.heading + 270 |> float_of_int)
         s.color;
       draw_rectangle_pro s.cannon
         (Vector2.create
@@ -129,13 +117,13 @@ let draw_sprite (s : t) (r : Robot.t) =
            ((tank_width /. 2.)
            -. ((tank_width -. turret_width) /. 2.)
            -. ((turret_width -. cannon_width) /. 2.)))
-        (r.turret_heading - 90 |> float_of_int)
+        (-r.turret_heading + 270 |> float_of_int)
         color_cannon;
       draw_rectangle_pro s.turret
         (Vector2.create
            ((tank_width /. 2.) -. ((tank_width -. turret_width) /. 2.))
            ((tank_width /. 2.) -. ((tank_width -. turret_width) /. 2.)))
-        (r.turret_heading - 90 |> float_of_int)
+        (-r.turret_heading + 270 |> float_of_int)
         color_turret;
       let fontsize = 20. in
       let v = measure_text_ex !stat_font r.name fontsize font_spacing in

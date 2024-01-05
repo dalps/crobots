@@ -179,7 +179,7 @@ let _ =
         sprites.(i) <-
           Sprite.create
             (r.x / click |> float_of_int)
-            (r.y / click |> float_of_int)
+            ((-1 * r.y / click) + arena_width |> float_of_int)
             colors.(i);
         r)
       programs
