@@ -29,6 +29,12 @@ let draw_stat_text text pos_x pos_y color =
     (Vector2.create (pos_x |> float_of_int) (pos_y |> float_of_int))
     stat_fontsize_f font_spacing color
 
+let draw_stat_text_s text pos_x pos_y size color =
+  let open Raylib in
+  draw_text_ex !stat_font text
+    (Vector2.create (pos_x |> float_of_int) (pos_y |> float_of_int))
+    size font_spacing color
+
 let measure_stat_text text =
   let open Raylib in
   measure_text_ex !stat_font text stat_fontsize_f font_spacing
@@ -79,30 +85,31 @@ let draw_stats i (r : Robot.t) color =
     draw_stat_text "(dead)"
       (pos_x + statbox_width - 100)
       (pos_y + col_padding) Color.red;
-  draw_stat_text
-    (spr " x: %d" (r.x / Robot.click))
-    (pos_x + col_padding)
-    (pos_y + name_sep + stat_height)
-    Color.black;
-  draw_stat_text
-    (spr " y: %d" (r.y / Robot.click))
-    (pos_x + col_padding + col_sep)
-    (pos_y + name_sep + stat_height)
-    Color.black;
 
   draw_stat_text (spr "d%%: %d" r.damage) (pos_x + col_padding)
-    (pos_y + name_sep + (stat_height * 2))
+    (pos_y + name_sep + (stat_height * 1))
     Color.black;
   draw_stat_text
     (spr "sc: %d" r.scan_degrees)
     (pos_x + col_padding + col_sep)
-    (pos_y + name_sep + (stat_height * 2))
+    (pos_y + name_sep + (stat_height * 1))
     Color.black;
 
   draw_stat_text (spr "sp: %d" r.speed) (pos_x + col_padding)
-    (pos_y + name_sep + (stat_height * 3))
+    (pos_y + name_sep + (stat_height * 2))
     Color.black;
   draw_stat_text (spr "hd: %d" r.heading)
+    (pos_x + col_padding + col_sep)
+    (pos_y + name_sep + (stat_height * 2))
+    Color.black;
+
+  draw_stat_text
+    (spr " x: %d" (r.x / Robot.click))
+    (pos_x + col_padding)
+    (pos_y + name_sep + (stat_height * 3))
+    Color.black;
+  draw_stat_text
+    (spr " y: %d" (r.y / Robot.click))
     (pos_x + col_padding + col_sep)
     (pos_y + name_sep + (stat_height * 3))
     Color.black
@@ -127,7 +134,7 @@ let draw_endgame result =
 
 let draw_cycles c =
   let open Raylib in
-  let text = Printf.sprintf "CPU cycle %6d" c in
+  let text = Printf.sprintf "CPU cycle: %6d" c in
   let v = measure_stat_text text in
   draw_stat_text text
     (window_width - (Vector2.x v |> int_of_float) - padding)
@@ -136,7 +143,7 @@ let draw_cycles c =
 
 let draw_fps n =
   let open Raylib in
-  let text = Printf.sprintf "FPS %6d" n in
+  let text = Printf.sprintf "FPS: %6d" n in
   let v = measure_stat_text text in
   draw_stat_text text
     (window_width - (Vector2.x v |> int_of_float) - padding)
