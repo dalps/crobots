@@ -177,10 +177,7 @@ let _ =
         Printf.printf "%d:%s spawned in %s quadrant (%d,%d)\n" i r.name
           (what_quad r.x r.y) (r.x / click) (r.y / click);
         sprites.(i) <-
-          Sprite.create
-            (r.x / click |> float_of_int)
-            ((-1 * r.y / click) + arena_width |> float_of_int)
-            colors.(i);
+          Sprite.create (get_screen_x_f r.x) (get_screen_y_f r.y) colors.(i);
         r)
       programs
   in
