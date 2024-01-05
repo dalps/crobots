@@ -46,8 +46,13 @@ let update_robot i (r : t) =
           r'.speed <- 0;
           r'.d_speed <- 0;
           r'.damage <- min 100 (r'.damage + collision);
-          Printf.printf "%s collided with %s (D%%: %d)\n" r.name r'.name
-            r.damage))
+          Printf.printf "%s collided with %s (D%%: %d, D%%: %d)\n" r.name
+            r'.name r.damage r'.damage;
+
+          if r'.damage >= 100 then (
+            Printf.printf "%s was killed by collision\n" r'.name;
+            r'.damage <- 100;
+            r'.status <- DEAD)))
       !all_robots;
 
     (* check for collision into a wall *)
