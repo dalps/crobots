@@ -38,6 +38,15 @@ let movement = ref motion_cycles
 let display = ref update_cycles
 let ( += ) r n = r := !r + n
 
+let what_quad x y =
+  let l = Gui.arena_width * Robot.click in
+  let mid = l / 2 in
+  match (x > mid, y > mid) with
+  | true, true -> "1st"
+  | false, true -> "2nd"
+  | false, false -> "3rd"
+  | true, false -> "4th"
+
 let draw_game () =
   let open Raylib in
   draw_arena ();
@@ -121,7 +130,18 @@ let rec endgame result =
 
       endgame result
 
+let rand_pos () =
+  let lt2 x = if x < 2 then 1 else 0 in
+  let a =
+    Array.init 4 (fun k ->
+        ( Random.int (arena_width / 2) + (arena_width / 2 * (k mod 2)),
+          Random.int (arena_width / 2) + (arena_width / 2 * lt2 k) ))
+  in
+  Array.sort (fun _ _ -> -1 + Random.int 3) a;
+  a
+
 let _ =
+  Random.init (Unix.time () |> int_of_float);
   let filenames = Cmd.parse () in
   let programs = List.map (fun f -> (f, read_file f)) filenames in
   let programs =
@@ -138,20 +158,24 @@ let _ =
       programs
   in
   let open Robot in
+  let init_pos = rand_pos () in
   let robots =
     List.mapi
       (fun i (f, p) ->
         let r = init () in
+        let init_x, init_y = init_pos.(i) in
         cur_robot := r;
         Trace.trace_instr (r.env, r.mem) (Instr p) |> ignore;
         r.name <- f;
         r.program <- p;
-        r.x <- Random.int 1000 * click;
+        r.x <- init_x * click;
         r.last_x <- r.x;
         r.org_x <- r.x;
-        r.y <- Random.int 1000 * click;
+        r.y <- init_y * click;
         r.last_y <- r.y;
         r.org_y <- r.y;
+        Printf.printf "%d:%s spawned in %s quadrant (%d,%d)\n" i r.name
+          (what_quad r.x r.y) (r.x / click) (r.y / click);
         sprites.(i) <-
           Sprite.create
             (r.x / click |> float_of_int)
