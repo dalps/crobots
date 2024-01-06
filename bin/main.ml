@@ -4,6 +4,15 @@ open Gui
 
 let usage_msg = "crobots <robot-programs>"
 
+let motion_cycles = 15 (* one motion update every motion_cycles CPU cycles *)
+let update_cycles = 30 (* one screen update every motion_cycles CPU cycles *)
+
+let movement = ref motion_cycles (* counter for motion_cycles *)
+let display = ref update_cycles (* counter for update_cycles *)
+let cycle = ref 0 (* counter for CPU cycles *)
+
+type gamestate = Play | End of Robot.t option
+
 module Cmd = struct
   let parse () =
     let input_files = ref [] in
@@ -31,24 +40,15 @@ let read_file filename =
    with End_of_file -> close_in_noerr ic);
   !out
 
-let motion_cycles = 15
-let update_cycles = 30
-let c = ref 0
-let movement = ref motion_cycles
-let display = ref update_cycles
-let ( += ) r n = r := !r + n
-
 let start_robot (r : Robot.t) =
   let mem = Memory.init_memory () in
   let env = Memory.init_stack () in
-  let ep = Ast.CALL ("main", []) in
   Trace.trace_instr (env, mem) (Instr r.program) |> ignore;
-  r.ep <- ep;
+  r.ep <- Ast.entry_point;
   r.mem <- mem;
   r.env <- env
 
 let draw_game () =
-  let open Raylib in
   draw_arena ();
 
   Array.iteri
@@ -59,64 +59,49 @@ let draw_game () =
       draw_stats i r sprites.(i).color)
     Robot.(!all_robots);
 
-  Gui.draw_fps (get_fps ());
-  c += update_cycles;
-  draw_cycles !c
+  draw_fps (Raylib.get_fps ());
+  draw_cycles !cycle
 
-let rec loop () =
+let play () =
   let open Robot in
-  let robots_left =
-    Array.fold_left
-      (fun n r -> n + if r.status = ALIVE then 1 else 0)
-      0 !all_robots
-  in
-  match Raylib.window_should_close () with
-  | true -> Raylib.close_window ()
-  | false when robots_left <= 1 -> ()
-  | false ->
-      Array.iter
-        (fun r ->
-          try
-            match r.status with
-            | ALIVE ->
-                cur_robot := r;
-                r.ep <- Trace.trace1_expr (r.env, r.mem) r.ep;
-                Memory.janitor r.env r.mem
-            | DEAD -> ()
-          with _ -> 
-            Printf.printf "%s had to be restarted\n" r.name;
-            start_robot r)
-        !all_robots;
+  incr cycle;
 
-      decr movement;
-      if !movement <= 0 then (
-        Motion.update_all_robots !all_robots;
-        movement := motion_cycles);
+  Array.iter
+    (fun r ->
+      try
+        match r.status with
+        | ALIVE ->
+            cur_robot := r;
+            r.ep <- Trace.trace1_expr (r.env, r.mem) r.ep;
+            Memory.janitor r.env r.mem
+        | DEAD -> ()
+      with _ ->
+        Printf.printf "%s had to be restarted\n" r.name;
+        start_robot r)
+    !all_robots;
 
-      decr display;
-      if !display <= 0 then (
-        let open Raylib in
-        begin_drawing ();
-        clear_background background_color;
-        draw_game ();
-        end_drawing ();
-        display := update_cycles);
+  decr movement;
+  if !movement <= 0 then (
+    Motion.update_all_robots !all_robots;
+    movement := motion_cycles)
 
-      flush stdout;
-      loop ()
-
-let rec endgame result =
-  let open Robot in
-  match Raylib.window_should_close () with
-  | true ->
+let rec loop state =
+  match (Raylib.window_should_close (), state) with
+  | true, _ ->
       unload_fonts ();
       Raylib.close_window ()
-  | false ->
-      decr movement;
-      if !movement <= 0 then (
-        Motion.update_all_robots !all_robots;
-        movement := motion_cycles);
+  | false, End winner ->
+      let result =
+        Option.fold ~none:"It's a tie"
+          ~some:(fun (r : Robot.t) -> Printf.sprintf "%s won the match" r.name)
+          winner
+      in
 
+      (* update *)
+      play ();
+      flush stdout;
+
+      (* draw *)
       decr display;
       if !display <= 0 then (
         let open Raylib in
@@ -127,7 +112,55 @@ let rec endgame result =
         end_drawing ();
         display := update_cycles);
 
-      endgame result
+      loop state
+  | false, Play ->
+      let open Robot in
+      let robots_left =
+        Array.fold_left
+          (fun n (r : Robot.t) -> n + if r.status = ALIVE then 1 else 0)
+          0 !all_robots
+      in
+
+      (* update *)
+      play ();
+      flush stdout;
+
+      (* draw *)
+      decr display;
+      if !display <= 0 then (
+        let open Raylib in
+        begin_drawing ();
+        clear_background background_color;
+        draw_game ();
+        end_drawing ();
+        display := update_cycles);
+
+      (* the match is over when:
+         - there's zero or one active robot left and
+         - all missiles of dead robots have exploded *)
+      if
+        robots_left <= 1
+        && Array.for_all
+             (fun r ->
+               Array.for_all
+                 (fun (m : Missile.t) -> m.status = AVAIL || r.status = ALIVE)
+                 r.missiles)
+             !all_robots
+      then
+        (* declare a winner and change the game state *)
+        let winner =
+          Array.fold_left
+            (fun acc r ->
+              match r.status with
+              | ALIVE ->
+                  Printf.printf "%s won the match\n" r.name;
+                  Some r
+              | _ -> acc)
+            None !all_robots
+        in
+
+        loop (End winner)
+      else loop Play
 
 let rand_pos () =
   let lt2 x = if x < 2 then 1 else 0 in
@@ -167,6 +200,7 @@ let setup () =
       (fun i (name, program) ->
         let init_x, init_y = init_pos.(i) in
         let r = init name program init_x init_y in
+        start_robot r;
         cur_robot := r;
         sprites.(i) <-
           Sprite.create (get_screen_x_f r.x) (get_screen_y_f r.y) colors.(i);
@@ -183,42 +217,4 @@ let setup () =
 
 let _ =
   setup ();
-
-  loop ();
-
-  (* allow any flying missile to explode *)
-  let open Robot in
-  while
-    Array.exists
-      (fun r ->
-        Array.exists (fun (m : Missile.t) -> m.status <> AVAIL) r.missiles)
-      !all_robots
-  do
-    decr movement;
-    if !movement <= 0 then (
-      Motion.update_all_robots !all_robots;
-      movement := motion_cycles);
-
-    decr display;
-    if !display <= 0 then (
-      draw_game ();
-      display := update_cycles)
-  done;
-
-  let winner =
-    Array.fold_left
-      (fun acc r ->
-        match r.status with
-        | ALIVE -> Some r
-        | _ -> acc)
-      None !all_robots
-  in
-
-  let winner_msg =
-    Option.fold ~none:"It's a tie"
-      ~some:(fun r -> Printf.sprintf "%s won the match" r.name)
-      winner
-  in
-
-  print_endline winner_msg;
-  endgame winner_msg
+  loop Play
