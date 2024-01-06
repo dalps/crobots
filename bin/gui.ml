@@ -116,21 +116,22 @@ let draw_stats i (r : Robot.t) color =
 
 let draw_endgame result =
   let open Raylib in
-  let fs = winner_fontsize |> float_of_int in
-  let w = measure_text_ex !stat_font result fs font_spacing in
-  let p = 20. in
+  let h1 = winner_fontsize |> float_of_int in
+  let h2 = 48. in
+  let t1 = "Quit [Esc] - New match [R]" in
+  let w = measure_text_ex !stat_font result h1 font_spacing in
+  let t1w = measure_text_ex !stat_font t1 h2 font_spacing in
   draw_rectangle 0 0 window_width window_height (fade Color.black 0.35);
-  draw_rectangle_v
-    (Vector2.create
-       ((window_width_f /. 2.) -. (Vector2.x w /. 2.) -. (p /. 2.))
-       ((window_height_f /. 2.) -. (Vector2.y w /. 2.) -. (p /. 2.)))
-    (Vector2.create (Vector2.x w +. 20.) (Vector2.y w +. 20.))
-    (fade Color.white 0.75);
   draw_text_ex !winner_font result
     (Vector2.create
        ((window_width_f /. 2.) -. (Vector2.x w /. 2.))
        ((window_height_f /. 2.) -. (Vector2.y w /. 2.)))
-    fs font_spacing Color.black
+    h1 font_spacing Color.black;
+  draw_text_ex !winner_font t1
+    (Vector2.create
+       ((window_width_f /. 2.) -. (Vector2.x t1w /. 2.))
+       ((window_height_f /. 2.) -. (Vector2.y t1w /. 2.) +. Vector2.y w))
+    h2 font_spacing Color.black
 
 let draw_cycles c =
   let open Raylib in

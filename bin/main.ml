@@ -40,6 +40,16 @@ let read_file filename =
    with End_of_file -> close_in_noerr ic);
   !out
 
+let rand_pos () =
+  let lt2 x = if x < 2 then 1 else 0 in
+  let pos =
+    Array.init 4 (fun k ->
+        ( Random.int (Robot.max_x / 2) + (Robot.max_x / 2 * (k mod 2)),
+          Random.int (Robot.max_y / 2) + (Robot.max_y / 2 * lt2 k) ))
+  in
+  Array.sort (fun _ _ -> -1 + Random.int 3) pos;
+  pos
+
 let start_robot (r : Robot.t) =
   let mem = Memory.init_memory () in
   let env = Memory.init_stack () in
@@ -47,6 +57,33 @@ let start_robot (r : Robot.t) =
   r.ep <- Ast.entry_point;
   r.mem <- mem;
   r.env <- env
+
+let reset_robot (r : Robot.t) (init_x, init_y) =
+  let x, y = (init_x * Robot.click, init_y * Robot.click) in
+  start_robot r;
+  r.status <- ALIVE;
+  r.x <- x;
+  r.y <- y;
+  r.org_x <- x;
+  r.org_y <- y;
+  r.last_x <- x;
+  r.last_y <- y;
+  r.range <- 0;
+  r.damage <- 0;
+  r.last_damage <- 0;
+  r.speed <- 0;
+  r.last_speed <- 0;
+  r.d_speed <- 0;
+  r.accel <- 0;
+  r.heading <- 0;
+  r.turret_heading <- 0;
+  r.last_heading <- 0;
+  r.d_heading <- 0;
+  r.scan_degrees <- 0;
+  r.scan_cycles <- 0;
+  r.scan_res <- 0;
+  r.reload <- 0;
+  r.missiles <- Array.init 2 (fun _ -> Missile.init ())
 
 let draw_game () =
   draw_arena ();
@@ -91,6 +128,7 @@ let rec loop state =
       unload_fonts ();
       Raylib.close_window ()
   | false, End winner ->
+      let open Robot in
       let result =
         Option.fold ~none:"It's a tie"
           ~some:(fun (r : Robot.t) -> Printf.sprintf "%s won the match" r.name)
@@ -112,7 +150,17 @@ let rec loop state =
         end_drawing ();
         display := update_cycles);
 
-      loop state
+      (* start a new match on key press *)
+      let state' =
+        let open Raylib in
+        if is_key_down Key.R then (
+          let init_pos = rand_pos () in
+          Array.iteri (fun i r -> reset_robot r init_pos.(i)) !all_robots;
+          Play)
+        else state
+      in
+
+      loop state'
   | false, Play ->
       let open Robot in
       let robots_left =
@@ -138,39 +186,32 @@ let rec loop state =
       (* the match is over when:
          - there's zero or one active robot left and
          - all missiles of dead robots have exploded *)
-      if
-        robots_left <= 1
-        && Array.for_all
-             (fun r ->
-               Array.for_all
-                 (fun (m : Missile.t) -> m.status = AVAIL || r.status = ALIVE)
-                 r.missiles)
-             !all_robots
-      then
-        (* declare a winner and change the game state *)
-        let winner =
-          Array.fold_left
-            (fun acc r ->
-              match r.status with
-              | ALIVE ->
-                  Printf.printf "%s won the match\n" r.name;
-                  Some r
-              | _ -> acc)
-            None !all_robots
-        in
+      let state' =
+        if
+          robots_left <= 1
+          && Array.for_all
+               (fun r ->
+                 Array.for_all
+                   (fun (m : Missile.t) -> m.status = AVAIL || r.status = ALIVE)
+                   r.missiles)
+               !all_robots
+        then
+          (* declare a winner and change the game state *)
+          let winner =
+            Array.fold_left
+              (fun acc r ->
+                match r.status with
+                | ALIVE ->
+                    Printf.printf "%s won the match\n" r.name;
+                    Some r
+                | _ -> acc)
+              None !all_robots
+          in
+          End winner
+        else state
+      in
 
-        loop (End winner)
-      else loop Play
-
-let rand_pos () =
-  let lt2 x = if x < 2 then 1 else 0 in
-  let pos =
-    Array.init 4 (fun k ->
-        ( Random.int (Robot.max_x / 2) + (Robot.max_x / 2 * (k mod 2)),
-          Random.int (Robot.max_y / 2) + (Robot.max_y / 2 * lt2 k) ))
-  in
-  Array.sort (fun _ _ -> -1 + Random.int 3) pos;
-  pos
+      loop state'
 
 let setup () =
   Printexc.record_backtrace true;
