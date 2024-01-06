@@ -219,9 +219,9 @@ let st0 = (env0, mem0)
 let trace s =
   let conf0 = Instr s in
   ignore (trace_instr st0 conf0);
-  trace_expr st0 (CALL ("main", []))
+  trace_expr st0 Ast.entry_point
 
 let trace_st s =
   let conf0 = Instr s in
   ignore (trace_instr st0 conf0);
-  trace_expr_st st0 (CALL ("main", []))
+  trace_expr_st st0 Ast.entry_point

@@ -28,7 +28,7 @@ let read_file filename =
        let line = input_line ic in
        out := !out ^ "\n" ^ line
      done
-   with _ -> close_in_noerr ic);
+   with End_of_file -> close_in_noerr ic);
   !out
 
 let motion_cycles = 15
@@ -38,14 +38,14 @@ let movement = ref motion_cycles
 let display = ref update_cycles
 let ( += ) r n = r := !r + n
 
-let what_quad x y =
-  let l = Gui.arena_width * Robot.click in
-  let mid = l / 2 in
-  match (x > mid, y > mid) with
-  | true, true -> "1st"
-  | false, true -> "2nd"
-  | false, false -> "3rd"
-  | true, false -> "4th"
+let start_robot (r : Robot.t) =
+  let mem = Memory.init_memory () in
+  let env = Memory.init_stack () in
+  let ep = Ast.CALL ("main", []) in
+  Trace.trace_instr (env, mem) (Instr r.program) |> ignore;
+  r.ep <- ep;
+  r.mem <- mem;
+  r.env <- env
 
 let draw_game () =
   let open Raylib in
@@ -83,10 +83,9 @@ let rec loop () =
                 r.ep <- Trace.trace1_expr (r.env, r.mem) r.ep;
                 Memory.janitor r.env r.mem
             | DEAD -> ()
-          with _ ->
-            r.ep <- CALL ("main", []);
-            r.env <- Memory.init_stack ();
-            r.mem <- Memory.init_memory ())
+          with _ -> 
+            Printf.printf "%s had to be restarted\n" r.name;
+            start_robot r)
         !all_robots;
 
       decr movement;
@@ -132,65 +131,63 @@ let rec endgame result =
 
 let rand_pos () =
   let lt2 x = if x < 2 then 1 else 0 in
-  let a =
+  let pos =
     Array.init 4 (fun k ->
-        ( Random.int (arena_width / 2) + (arena_width / 2 * (k mod 2)),
-          Random.int (arena_width / 2) + (arena_width / 2 * lt2 k) ))
+        ( Random.int (Robot.max_x / 2) + (Robot.max_x / 2 * (k mod 2)),
+          Random.int (Robot.max_y / 2) + (Robot.max_y / 2 * lt2 k) ))
   in
-  Array.sort (fun _ _ -> -1 + Random.int 3) a;
-  a
+  Array.sort (fun _ _ -> -1 + Random.int 3) pos;
+  pos
 
-let _ =
+let setup () =
+  Printexc.record_backtrace true;
   Random.init (Unix.time () |> int_of_float);
+
+  (* parse the command line and parse the supplied robot programs *)
   let filenames = Cmd.parse () in
-  let programs = List.map (fun f -> (f, read_file f)) filenames in
   let programs =
-    match programs with
-    | [ p ] -> [ p; p ]
-    | ps -> ps
+    List.map read_file filenames
+    |> List.map2
+         (fun f p ->
+           let ast = Main.parse p in
+           Printf.printf "%s compiled with no errors\n" f;
+           (f, ast))
+         filenames
+    (* if only one robot was supplied, duplicate it *)
+    |> function
+    | [ x ] -> [ x; x ]
+    | l -> l
   in
-  let programs =
-    List.map
-      (fun (f, p) ->
-        let p = Main.parse p in
-        Printf.printf "%s compiled with no errors.\n" f;
-        (f, p))
-      programs
-  in
+
+  (* initialize the robot array *)
   let open Robot in
   let init_pos = rand_pos () in
   let robots =
     List.mapi
-      (fun i (f, p) ->
-        let r = init () in
+      (fun i (name, program) ->
         let init_x, init_y = init_pos.(i) in
+        let r = init name program init_x init_y in
         cur_robot := r;
-        Trace.trace_instr (r.env, r.mem) (Instr p) |> ignore;
-        r.name <- f;
-        r.program <- p;
-        r.x <- init_x * click;
-        r.last_x <- r.x;
-        r.org_x <- r.x;
-        r.y <- init_y * click;
-        r.last_y <- r.y;
-        r.org_y <- r.y;
-        Printf.printf "%d:%s spawned in %s quadrant (%d,%d)\n" i r.name
-          (what_quad r.x r.y) (r.x / click) (r.y / click);
         sprites.(i) <-
           Sprite.create (get_screen_x_f r.x) (get_screen_y_f r.y) colors.(i);
         r)
       programs
   in
   all_robots := Array.of_list robots;
+
+  (* initialize raylib *)
   let open Raylib in
   init_window window_width window_height "crobots";
-
   load_fonts ();
+  set_target_fps 60
 
-  set_target_fps 60;
+let _ =
+  setup ();
+
   loop ();
 
   (* allow any flying missile to explode *)
+  let open Robot in
   while
     Array.exists
       (fun r ->

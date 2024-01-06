@@ -49,7 +49,10 @@ and instruction =
   | IF of expression * instruction
   | IFE of expression * instruction * instruction
   | WHILE of expression * instruction
-  | WHILE_EXEC of expression * instruction * expression (* current guard, body, original guard; runtime-only *)
+  | WHILE_EXEC of
+      expression
+      * instruction
+      * expression (* current guard, body, original guard; runtime-only *)
   | EXPR of expression
   | RET of expression option
   | BLOCK of instruction
@@ -60,3 +63,5 @@ and instruction =
   | SEQ of instruction * instruction
 
 type program = instruction
+
+let entry_point = CALL ("main", [])

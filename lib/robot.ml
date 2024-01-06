@@ -49,17 +49,18 @@ type t = {
   mutable missiles : Missile.t array;
 }
 
-let init () =
+let init name program init_x init_y =
+  let x, y = (init_x * click, init_y * click) in
   {
     status = ALIVE;
-    name = "foo";
-    x = 0;
-    y = 0;
-    org_x = 0;
-    org_y = 0;
+    name;
+    x;
+    y;
+    org_x = x;
+    org_y = y;
+    last_x = x;
+    last_y = y;
     range = 0;
-    last_x = 0;
-    last_y = 0;
     damage = 0;
     last_damage = 0;
     speed = 0;
@@ -75,13 +76,13 @@ let init () =
     scan_res = 0;
     reload = 0;
     missiles = Array.init 2 (fun _ -> Missile.init ());
-    program = EMPTY;
-    ep = CALL ("main", []);
+    program;
+    ep = Ast.entry_point;
     env = Memory.init_stack ();
     mem = Memory.init_memory ();
   }
 
-let cur_robot = ref (init ())
+let cur_robot = ref (init "foo" EMPTY 0 0)
 let all_robots = ref [||]
 
 let degree_of_int d = abs d mod 360

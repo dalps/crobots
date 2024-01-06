@@ -44,7 +44,7 @@ val res_limit : int
 val deg2rad : float
 val rad2deg : float
 
-val init : unit -> t
+val init : string -> Ast.instruction -> int -> int -> t
 
 val cur_robot : t ref
 val all_robots : t array ref
