@@ -31,6 +31,7 @@ type t = {
   mutable missiles : Missile.t array;
 }
 
+val robot_width : int
 val robot_speed : int
 val turn_speed : int
 val turn_incr : int

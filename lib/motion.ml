@@ -1,5 +1,20 @@
 open Robot
 
+let collision_slack = 50.
+
+let square_diag x =
+  let p = 45 in
+  let x = if x / p mod 2 = 0 then x mod p else -(x mod p) + p in
+  1. /. Float.cos (deg2rad *. (x |> float))
+
+let collision_limit1 h =
+  let w = robot_width * click |> float in
+  square_diag h *. w /. 2.
+
+let collision_limit2 h1 h2 =
+  let w = robot_width * click |> float in
+  (square_diag h1 *. w /. 2.) +. (square_diag h2 *. w /. 2.)
+
 let update_robot i (r : t) =
   if r.reload > 0 then r.reload <- r.reload - 1;
 
@@ -37,8 +52,13 @@ let update_robot i (r : t) =
       (fun i' r' ->
         if
           r'.status <> DEAD && i' <> i
-          && abs (r.x - r'.x) < click
-          && abs (r.y - r'.y) < click
+          &&
+          let x1, y1, x2, y2 = (float r.x, float r.y, float r'.x, float r'.y) in
+          let distance =
+            Float.sqrt (((x1 -. x2) ** 2.) +. ((y1 -. y2) ** 2.))
+          in
+          let limit = collision_limit2 r.heading r'.heading in
+          limit -. collision_slack < distance && distance < limit
         then (
           r.speed <- 0;
           r.d_speed <- 0;
@@ -55,16 +75,17 @@ let update_robot i (r : t) =
             r'.status <- DEAD)))
       !all_robots;
 
+    let limit = collision_limit1 r.heading |> int_of_float in
     (* check for collision into a wall *)
     (match r.x with
-    | x when x < 0 ->
-        r.x <- 0;
+    | x when x < limit ->
+        r.x <- limit;
         r.speed <- 0;
         r.d_speed <- 0;
         r.damage <- min 100 (r.damage + collision);
         Printf.printf "%s hit west wall (D%%: %d)\n" r.name r.damage
-    | x when x > max_x * click ->
-        r.x <- (max_x * click) - 1;
+    | x when x > (max_x * click) - limit ->
+        r.x <- (max_x * click) - limit - 1;
         r.speed <- 0;
         r.d_speed <- 0;
         r.damage <- min 100 (r.damage + collision);
@@ -72,14 +93,14 @@ let update_robot i (r : t) =
     | _ -> ());
 
     (match r.y with
-    | y when y < 0 ->
-        r.y <- 0;
+    | y when y < limit ->
+        r.y <- limit;
         r.speed <- 0;
         r.d_speed <- 0;
         r.damage <- min 100 (r.damage + collision);
         Printf.printf "%s hit south wall (D%%: %d)\n" r.name r.damage
-    | y when y > max_y * click ->
-        r.y <- (max_y * click) - 1;
+    | y when y > (max_y * click) - limit ->
+        r.y <- (max_y * click) - limit - 1;
         r.speed <- 0;
         r.d_speed <- 0;
         r.damage <- min 100 (r.damage + collision);

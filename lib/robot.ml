@@ -1,3 +1,4 @@
+let robot_width = 50
 let robot_speed = 7
 let turn_speed = 50
 let turn_incr = 1

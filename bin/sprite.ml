@@ -2,8 +2,7 @@ open Raylib
 open Crobots
 open Gui
 
-let robot_width = 50.
-let robot_height = 50.
+let robot_width = Robot.robot_width |> float_of_int
 let tank_width = robot_width
 let turret_width = tank_width *. 0.7
 let cannon_width = tank_width *. 0.2
