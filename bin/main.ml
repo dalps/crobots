@@ -86,15 +86,20 @@ let reset_robot (r : Robot.t) (init_x, init_y) =
   r.missiles <- Array.init 2 (fun _ -> Missile.init ())
 
 let draw_game () =
+  let open Robot in
   draw_arena ();
 
   Array.iteri
     (fun i (r : Robot.t) ->
-      let open Sprite in
       update_sprite sprites.(i) r;
-      draw_sprite sprites.(i) r;
+      if r.status = DEAD then draw_sprite sprites.(i) r;
       draw_stats i r sprites.(i).color)
-    Robot.(!all_robots);
+    !all_robots;
+
+  (* draw active robots on top of dead ones *)
+  Array.iteri
+    (fun i (r : Robot.t) -> if r.status = ALIVE then draw_sprite sprites.(i) r)
+    !all_robots;
 
   draw_fps (Raylib.get_fps ());
   draw_cycles !cycle
@@ -208,7 +213,13 @@ let rec loop state =
               None !all_robots
           in
           End winner
-        else state
+        else
+          let open Raylib in
+          if is_key_pressed Key.R then (
+            let init_pos = rand_pos () in
+            Array.iteri (fun i r -> reset_robot r init_pos.(i)) !all_robots;
+            Play)
+          else state
       in
 
       loop state'

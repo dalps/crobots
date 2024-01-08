@@ -68,6 +68,8 @@ let update_sprite (s : t) (r : Robot.t) =
 let draw_sprite (s : t) (r : Robot.t) =
   let color_turret = color_brightness s.color 0.25 in
   let color_cannon = color_brightness s.color 0.5 in
+  let x = get_screen_x r.x in
+  let y = get_screen_y r.y in
 
   (* draw any flying or exploding missile *)
   Array.iteri
@@ -85,13 +87,11 @@ let draw_sprite (s : t) (r : Robot.t) =
       | _ -> ())
     r.missiles;
 
-  match r.status with
+  (match r.status with
   | ALIVE ->
       (* draw the scan radar *)
       let res = r.scan_res |> float_of_int in
       let dir = r.scan_degrees + 90 |> float_of_int in
-      let x = get_screen_x r.x in
-      let y = get_screen_y r.y in
       if r.scan_cycles > 0 then (
         draw_circle_sector
           (Vector2.create (x |> float_of_int) (y |> float_of_int))
@@ -112,22 +112,40 @@ let draw_sprite (s : t) (r : Robot.t) =
       draw_rectangle_pro s.turret
         (Vector2.create (turret_width /. 2.) (turret_width /. 2.))
         (get_screen_degrees_f r.turret_heading)
-        color_turret;
+        color_turret
+  | DEAD ->
+      let g1 = color_brightness Color.gray 0.5 in
+      let g2 = color_brightness Color.gray 0.7 in
+      let g3 = color_brightness Color.gray 0.8 in
+      (* draw the tank, the cannon and the turret *)
+      draw_rectangle_pro s.tank
+        (Vector2.create (tank_width /. 2.) (tank_width /. 2.))
+        (get_screen_degrees_f r.heading)
+        g1;
 
-      (* draw the robot's name floating around its sprite *)
-      let fontsize = 20. in
-      let v = measure_text_ex !stat_font r.name fontsize font_spacing in
-      draw_stat_text_s r.name
-        (let vx = Vector2.x v |> int_of_float in
-         let x' = x - (vx / 2) in
-         if x' < padding then padding
-         else if x' + vx > arena_width + padding then arena_width + padding - vx
-         else x')
-        (let vy = Vector2.y v |> int_of_float in
-         let offset = 55 in
-         let y' = y + offset in
-         if y' + vy > arena_width + padding - offset then
-           arena_width + padding - vy - offset
-         else y')
-        fontsize Color.gray
-  | DEAD -> ()
+      draw_rectangle_pro s.cannon
+        (Vector2.create (cannon_width /. 2.) (cannon_width /. 2.))
+        (get_screen_degrees_f r.turret_heading)
+        g3;
+
+      draw_rectangle_pro s.turret
+        (Vector2.create (turret_width /. 2.) (turret_width /. 2.))
+        (get_screen_degrees_f r.turret_heading)
+        g2);
+
+  (* draw the robot's name floating around its sprite *)
+  let fontsize = 20. in
+  let v = measure_text_ex !stat_font r.name fontsize font_spacing in
+  draw_stat_text_s r.name
+    (let vx = Vector2.x v |> int_of_float in
+     let x' = x - (vx / 2) in
+     if x' < padding then padding
+     else if x' + vx > arena_width + padding then arena_width + padding - vx
+     else x')
+    (let vy = Vector2.y v |> int_of_float in
+     let offset = 55 in
+     let y' = y + offset in
+     if y' + vy > arena_width + padding - offset then
+       arena_width + padding - vy - offset
+     else y')
+    fontsize Color.gray
