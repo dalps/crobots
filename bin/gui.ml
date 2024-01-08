@@ -23,6 +23,20 @@ let unload_fonts () =
   unload_font !stat_font;
   unload_font !winner_font
 
+let skull_texture =
+  let open Raylib in
+  ref
+    (Texture2D.create Unsigned.UInt.zero 0 0 0
+       PixelFormat.Compressed_astc_4x4_rgba)
+
+let skull_color =
+  let open Raylib in
+  fade Color.red 0.75
+
+let load_textures () =
+  let open Raylib in
+  skull_texture := load_texture "bin/textures/skull.png"
+
 let draw_stat_text text pos_x pos_y color =
   let open Raylib in
   draw_text_ex !stat_font text
@@ -81,10 +95,25 @@ let draw_stats i (r : Robot.t) color =
   draw_rectangle_lines pos_x pos_y statbox_width statbox_height color;
   draw_stat_text (spr "%d. %s" i r.name) (pos_x + col_padding)
     (pos_y + col_padding) Color.black;
-  if r.status = Robot.DEAD then
-    draw_stat_text "(dead)"
-      (pos_x + statbox_width - 100)
-      (pos_y + col_padding) Color.red;
+
+  (if r.status = Robot.DEAD then
+     let skull_width = stat_fontsize_f in
+     let srcrec =
+       Rectangle.create 0. 0.
+         (Texture.width !skull_texture |> float)
+         (Texture.height !skull_texture |> float)
+     in
+     let dstrec =
+       Rectangle.(
+         create
+           ((pos_x |> float)
+           +. (statbox_width - col_padding |> float)
+           -. skull_width)
+           (pos_y + col_padding |> float)
+           skull_width skull_width)
+     in
+     draw_texture_pro !skull_texture srcrec dstrec (Vector2.zero ()) 0.
+       skull_color);
 
   draw_stat_text (spr "d%%: %d" r.damage) (pos_x + col_padding)
     (pos_y + name_sep + (stat_height * 1))

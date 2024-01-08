@@ -117,11 +117,10 @@ let draw_sprite (s : t) (r : Robot.t) =
       let g1 = color_brightness Color.gray 0.5 in
       let g2 = color_brightness Color.gray 0.7 in
       let g3 = color_brightness Color.gray 0.8 in
+      let origin = Vector2.create (tank_width /. 2.) (tank_width /. 2.) in
+
       (* draw the tank, the cannon and the turret *)
-      draw_rectangle_pro s.tank
-        (Vector2.create (tank_width /. 2.) (tank_width /. 2.))
-        (get_screen_degrees_f r.heading)
-        g1;
+      draw_rectangle_pro s.tank origin (get_screen_degrees_f r.heading) g1;
 
       draw_rectangle_pro s.cannon
         (Vector2.create (cannon_width /. 2.) (cannon_width /. 2.))
@@ -131,7 +130,20 @@ let draw_sprite (s : t) (r : Robot.t) =
       draw_rectangle_pro s.turret
         (Vector2.create (turret_width /. 2.) (turret_width /. 2.))
         (get_screen_degrees_f r.turret_heading)
-        g2);
+        g2;
+
+      let module R = Rectangle in
+      let skull_width = tank_width *. 0.5 in
+      let srcrec =
+        R.create 0. 0.
+          (Texture.width !skull_texture |> float)
+          (Texture.height !skull_texture |> float)
+      in
+      let dstrec = R.(create (x s.tank) (y s.tank) skull_width skull_width) in
+
+      draw_texture_pro !skull_texture srcrec dstrec
+        (Vector2.create (skull_width /. 2.) (skull_width /. 2.))
+        0. skull_color);
 
   (* draw the robot's name floating around its sprite *)
   let fontsize = 20. in

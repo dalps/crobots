@@ -265,6 +265,7 @@ let setup () =
   let open Raylib in
   init_window window_width window_height "crobots";
   load_fonts ();
+  load_textures ();
   set_target_fps 60
 
 let _ =
