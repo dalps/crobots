@@ -22,12 +22,16 @@ let get_screen_y_f y = get_screen_y y |> float_of_int
 let get_screen_degrees d = -d + 270
 let get_screen_degrees_f d = get_screen_degrees d |> float_of_int
 
+let max_frame_speed = 60
+
 type t = {
   tank : Rectangle.t;
   turret : Rectangle.t;
   cannon : Rectangle.t;
   missiles : Rectangle.t array;
   color : Color.t;
+  mutable frame_counter : int;
+  mutable current_frame : int;
 }
 
 let create init_x init_y color =
@@ -43,6 +47,8 @@ let create init_x init_y color =
       Array.init 2 (fun _ ->
           Rectangle.create init_x init_y missile_height missile_width);
     color;
+    frame_counter = 0;
+    current_frame = 0;
   }
 
 let sprites =
@@ -53,6 +59,16 @@ let sprites =
        Raylib.Color.black)
 
 let update_sprite (s : t) (r : Robot.t) =
+  let frame_speed =
+    (max_frame_speed |> float) *. ((r.speed |> float) /. 100.) |> int_of_float
+  in
+
+  if frame_speed <> 0 && r.status <> DEAD then (
+    s.frame_counter <- s.frame_counter + 1;
+    if s.frame_counter > 60 / frame_speed then (
+      s.frame_counter <- 0;
+      s.current_frame <- (s.current_frame + 1) mod 4));
+
   let x = get_screen_x_f r.x in
   let y = get_screen_y_f r.y in
   Rectangle.set_x s.tank x;
@@ -90,9 +106,7 @@ let draw_sprite (s : t) (r : Robot.t) =
     r.missiles;
 
   let module R = Rectangle in
-  let srcrec_tank, srcrec_turret =
-    (get_srcrec !tank_texture, get_srcrec !turret_texture)
-  in
+  let srcrec_turret = get_srcrec !turret_texture in
 
   let color_tank, color_turret =
     match r.status with
@@ -112,11 +126,12 @@ let draw_sprite (s : t) (r : Robot.t) =
         (g1, g2)
   in
 
+  let tank_texture_width = (Texture.width !tank_texture |> float) /. 4. in
+
   (* draw the tank, the cannon and the turret *)
   let w =
     R.width s.tank
-    *. ((Texture.width !tank_shadow_texture |> float)
-       /. (Texture.width !tank_texture |> float))
+    *. ((Texture.width !tank_shadow_texture |> float) /. tank_texture_width)
   in
   draw_texture_pro !tank_shadow_texture
     (get_srcrec !tank_shadow_texture)
@@ -125,7 +140,14 @@ let draw_sprite (s : t) (r : Robot.t) =
     (get_screen_degrees_f r.heading)
     Color.black;
 
-  draw_texture_pro !tank_texture srcrec_tank s.tank
+  let frame_rec =
+    R.create
+      ((s.current_frame |> float) *. tank_texture_width)
+      0. tank_texture_width
+      (Texture.height !tank_texture |> float)
+  in
+
+  draw_texture_pro !tank_texture frame_rec s.tank
     (Vector2.create (tank_width /. 2.) (tank_width /. 2.))
     (get_screen_degrees_f r.heading)
     color_tank;
