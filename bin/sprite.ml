@@ -94,54 +94,73 @@ let draw_sprite (s : t) (r : Robot.t) =
     (get_srcrec !tank_texture, get_srcrec !turret_texture)
   in
 
-  (match r.status with
-  | ALIVE ->
-      (* draw the scan radar *)
-      let res = r.scan_res |> float_of_int in
-      let dir = r.scan_degrees + 90 |> float_of_int in
-      if r.scan_cycles > 0 then (
-        draw_circle_sector
-          (Vector2.create (x |> float_of_int) (y |> float_of_int))
-          scan_height (dir +. res) (dir -. res) 1 (fade Color.red 0.1);
-        draw_circle_lines x y scan_height (fade Color.red 0.1));
+  let color_tank, color_turret =
+    match r.status with
+    | ALIVE ->
+        (* draw the scan radar *)
+        let res = r.scan_res |> float_of_int in
+        let dir = r.scan_degrees + 90 |> float_of_int in
+        if r.scan_cycles > 0 then (
+          draw_circle_sector
+            (Vector2.create (x |> float_of_int) (y |> float_of_int))
+            scan_height (dir +. res) (dir -. res) 1 (fade Color.red 0.1);
+          draw_circle_lines x y scan_height (fade Color.red 0.1));
+        (s.color, s.color)
+    | DEAD ->
+        let g1 = color_brightness Color.gray 0.5 in
+        let g2 = color_brightness Color.gray 0.7 in
+        (g1, g2)
+  in
 
-      (* draw the tank, the cannon and the turret *)
-      draw_texture_pro !tank_texture srcrec_tank s.tank
-        (Vector2.create (tank_width /. 2.) (tank_width /. 2.))
-        (get_screen_degrees_f r.heading)
-        s.color;
+  (* draw the tank, the cannon and the turret *)
+  let w =
+    R.width s.tank
+    *. ((Texture.width !tank_shadow_texture |> float)
+       /. (Texture.width !tank_texture |> float))
+  in
+  draw_texture_pro !tank_shadow_texture
+    (get_srcrec !tank_shadow_texture)
+    R.(create (x s.tank) (y s.tank) w w)
+    (Vector2.create (w /. 2.) (w /. 2.))
+    (get_screen_degrees_f r.heading)
+    Color.black;
 
-      draw_texture_pro !turret_texture srcrec_turret s.turret
-        (Vector2.create (turret_width /. 2.) (turret_width /. 2.))
-        (get_screen_degrees_f r.turret_heading)
-        s.color
-  | DEAD ->
-      let g1 = color_brightness Color.gray 0.5 in
-      let g2 = color_brightness Color.gray 0.7 in
+  draw_texture_pro !tank_texture srcrec_tank s.tank
+    (Vector2.create (tank_width /. 2.) (tank_width /. 2.))
+    (get_screen_degrees_f r.heading)
+    color_tank;
 
-      (* draw the tank, the cannon and the turret *)
-      draw_texture_pro !tank_texture srcrec_tank s.tank
-        (Vector2.create (tank_width /. 2.) (tank_width /. 2.))
-        (get_screen_degrees_f r.heading)
-        g1;
+  let w =
+    R.width s.turret
+    *. ((Texture.width !turret_shadow_texture |> float)
+       /. (Texture.width !turret_texture |> float))
+  in
+  let h =
+    R.height s.turret
+    *. ((Texture.height !turret_shadow_texture |> float)
+       /. (Texture.height !turret_texture |> float))
+  in
+  draw_texture_pro !turret_shadow_texture
+    (get_srcrec !turret_shadow_texture)
+    R.(create (x s.tank) (y s.tank) w h)
+    (Vector2.create (w /. 2.) (w /. 2.))
+    (get_screen_degrees_f r.turret_heading)
+    Color.black;
 
-      draw_texture_pro !turret_texture srcrec_turret s.turret
-        (Vector2.create (turret_width /. 2.) (turret_width /. 2.))
-        (get_screen_degrees_f r.turret_heading)
-        g2;
+  draw_texture_pro !turret_texture srcrec_turret s.turret
+    (Vector2.create (turret_width /. 2.) (turret_width /. 2.))
+    (get_screen_degrees_f r.turret_heading)
+    color_turret;
 
-      let module R = Rectangle in
-      let skull_width = tank_width *. 0.5 in
-      let srcrec =
-        R.create 0. 0.
-          (Texture.width !skull_texture |> float)
-          (Texture.height !skull_texture |> float)
-      in
-      let dstrec = R.(create (x s.tank) (y s.tank) skull_width skull_width) in
+  (if r.status = DEAD then
+     let skull_width = tank_width *. 0.5 in
+     let dstrec = R.(create (x s.tank) (y s.tank) skull_width skull_width) in
 
-      draw_texture_pro !skull_texture srcrec dstrec
-        (Vector2.create (skull_width /. 2.) (skull_width /. 2.))
-        0. skull_color);
+     draw_texture_pro !skull_texture
+       (get_srcrec !skull_texture)
+       dstrec
+       (Vector2.create (skull_width /. 2.) (skull_width /. 2.))
+       0. skull_color);
 
   (* draw the robot's name floating around its sprite *)
   let fontsize = 20. in

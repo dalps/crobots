@@ -30,6 +30,8 @@ let dummy_texture =
 let skull_texture = ref dummy_texture
 let tank_texture = ref dummy_texture
 let turret_texture = ref dummy_texture
+let tank_shadow_texture = ref dummy_texture
+let turret_shadow_texture = ref dummy_texture
 
 let get_srcrec texture =
   (* Printf.printf "w: %d, h: %d\n" (Texture.width texture)(Texture.height texture); *)
@@ -45,7 +47,9 @@ let load_textures () =
   let open Raylib in
   skull_texture := load_texture "bin/textures/skull.png";
   tank_texture := load_texture "bin/textures/tank.png";
-  turret_texture := load_texture "bin/textures/turret.png"
+  turret_texture := load_texture "bin/textures/turret.png";
+  tank_shadow_texture := load_texture "bin/textures/tank_shadow.png";
+  turret_shadow_texture := load_texture "bin/textures/turret_shadow.png"
 
 let draw_stat_text text pos_x pos_y color =
   let open Raylib in
@@ -156,7 +160,7 @@ let draw_endgame result =
   let t1 = "Quit [Esc] - New match [R]" in
   let w = measure_text_ex !stat_font result h1 font_spacing in
   let t1w = measure_text_ex !stat_font t1 h2 font_spacing in
-  draw_rectangle 0 0 window_width window_height (fade Color.black 0.35);
+  draw_rectangle 0 0 window_width window_height (fade Color.white 0.35);
   draw_text_ex !winner_font result
     (Vector2.create
        ((window_width_f /. 2.) -. (Vector2.x w /. 2.))
