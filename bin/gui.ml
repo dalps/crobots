@@ -1,4 +1,5 @@
 open Crobots
+open Raylib
 
 let background_color = Raylib.Color.raywhite
 
@@ -23,11 +24,18 @@ let unload_fonts () =
   unload_font !stat_font;
   unload_font !winner_font
 
-let skull_texture =
-  let open Raylib in
-  ref
-    (Texture2D.create Unsigned.UInt.zero 0 0 0
-       PixelFormat.Compressed_astc_4x4_rgba)
+let dummy_texture =
+  Texture2D.create Unsigned.UInt.zero 0 0 0 PixelFormat.Compressed_astc_4x4_rgba
+
+let skull_texture = ref dummy_texture
+let tank_texture = ref dummy_texture
+let turret_texture = ref dummy_texture
+
+let get_srcrec texture =
+  (* Printf.printf "w: %d, h: %d\n" (Texture.width texture)(Texture.height texture); *)
+  Rectangle.create 0. 0.
+    (Texture.width texture |> float)
+    (Texture.height texture |> float)
 
 let skull_color =
   let open Raylib in
@@ -35,7 +43,9 @@ let skull_color =
 
 let load_textures () =
   let open Raylib in
-  skull_texture := load_texture "bin/textures/skull.png"
+  skull_texture := load_texture "bin/textures/skull.png";
+  tank_texture := load_texture "bin/textures/tank.png";
+  turret_texture := load_texture "bin/textures/turret.png"
 
 let draw_stat_text text pos_x pos_y color =
   let open Raylib in
@@ -98,11 +108,7 @@ let draw_stats i (r : Robot.t) color =
 
   (if r.status = Robot.DEAD then
      let skull_width = stat_fontsize_f in
-     let srcrec =
-       Rectangle.create 0. 0.
-         (Texture.width !skull_texture |> float)
-         (Texture.height !skull_texture |> float)
-     in
+     let srcrec = get_srcrec !skull_texture in
      let dstrec =
        Rectangle.(
          create

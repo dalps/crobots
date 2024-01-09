@@ -33,7 +33,11 @@ type t = {
 let create init_x init_y color =
   {
     tank = Rectangle.create init_x init_y tank_width tank_width;
-    turret = Rectangle.create init_x init_y turret_width turret_width;
+    turret =
+      Rectangle.create init_x init_y turret_width
+        (turret_width
+        *. ((Texture.height !turret_texture |> float)
+           /. (Texture.width !turret_texture |> float)));
     cannon = Rectangle.create init_x init_y cannon_width cannon_height;
     missiles =
       Array.init 2 (fun _ ->
@@ -66,8 +70,6 @@ let update_sprite (s : t) (r : Robot.t) =
     s.missiles r.missiles
 
 let draw_sprite (s : t) (r : Robot.t) =
-  let color_turret = color_brightness s.color 0.25 in
-  let color_cannon = color_brightness s.color 0.5 in
   let x = get_screen_x r.x in
   let y = get_screen_y r.y in
 
@@ -87,6 +89,11 @@ let draw_sprite (s : t) (r : Robot.t) =
       | _ -> ())
     r.missiles;
 
+  let module R = Rectangle in
+  let srcrec_tank, srcrec_turret =
+    (get_srcrec !tank_texture, get_srcrec !turret_texture)
+  in
+
   (match r.status with
   | ALIVE ->
       (* draw the scan radar *)
@@ -99,35 +106,26 @@ let draw_sprite (s : t) (r : Robot.t) =
         draw_circle_lines x y scan_height (fade Color.red 0.1));
 
       (* draw the tank, the cannon and the turret *)
-      draw_rectangle_pro s.tank
+      draw_texture_pro !tank_texture srcrec_tank s.tank
         (Vector2.create (tank_width /. 2.) (tank_width /. 2.))
         (get_screen_degrees_f r.heading)
         s.color;
 
-      draw_rectangle_pro s.cannon
-        (Vector2.create (cannon_width /. 2.) (cannon_width /. 2.))
-        (get_screen_degrees_f r.turret_heading)
-        color_cannon;
-
-      draw_rectangle_pro s.turret
+      draw_texture_pro !turret_texture srcrec_turret s.turret
         (Vector2.create (turret_width /. 2.) (turret_width /. 2.))
         (get_screen_degrees_f r.turret_heading)
-        color_turret
+        s.color
   | DEAD ->
       let g1 = color_brightness Color.gray 0.5 in
       let g2 = color_brightness Color.gray 0.7 in
-      let g3 = color_brightness Color.gray 0.8 in
-      let origin = Vector2.create (tank_width /. 2.) (tank_width /. 2.) in
 
       (* draw the tank, the cannon and the turret *)
-      draw_rectangle_pro s.tank origin (get_screen_degrees_f r.heading) g1;
+      draw_texture_pro !tank_texture srcrec_tank s.tank
+        (Vector2.create (tank_width /. 2.) (tank_width /. 2.))
+        (get_screen_degrees_f r.heading)
+        g1;
 
-      draw_rectangle_pro s.cannon
-        (Vector2.create (cannon_width /. 2.) (cannon_width /. 2.))
-        (get_screen_degrees_f r.turret_heading)
-        g3;
-
-      draw_rectangle_pro s.turret
+      draw_texture_pro !turret_texture srcrec_turret s.turret
         (Vector2.create (turret_width /. 2.) (turret_width /. 2.))
         (get_screen_degrees_f r.turret_heading)
         g2;

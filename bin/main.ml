@@ -244,6 +244,13 @@ let setup () =
     | l -> l
   in
 
+  (* initialize raylib *)
+  let open Raylib in
+  init_window window_width window_height "crobots";
+  load_fonts ();
+  load_textures ();
+  set_target_fps 60;
+
   (* initialize the robot array *)
   let open Robot in
   let init_pos = rand_pos () in
@@ -259,14 +266,7 @@ let setup () =
         r)
       programs
   in
-  all_robots := Array.of_list robots;
-
-  (* initialize raylib *)
-  let open Raylib in
-  init_window window_width window_height "crobots";
-  load_fonts ();
-  load_textures ();
-  set_target_fps 60
+  all_robots := Array.of_list robots
 
 let _ =
   setup ();
