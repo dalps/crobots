@@ -24,6 +24,14 @@ let get_screen_degrees_f d = get_screen_degrees d |> float_of_int
 
 let max_frame_speed = 60
 
+let trail_time = 60
+let max_trails = 50
+let trail_height = 6.
+let max_trail_speed = 75
+let trail_fade = 0.0
+
+type trail = { x : float; y : float; rotation : float; mutable alpha : float }
+
 type t = {
   tank : Rectangle.t;
   turret : Rectangle.t;
@@ -32,6 +40,8 @@ type t = {
   color : Color.t;
   mutable frame_counter : int;
   mutable current_frame : int;
+  mutable trail_frame_counter : int;
+  trails : trail Queue.t;
 }
 
 let create init_x init_y color =
@@ -49,6 +59,8 @@ let create init_x init_y color =
     color;
     frame_counter = 0;
     current_frame = 0;
+    trail_frame_counter = 0;
+    trails = Queue.create ();
   }
 
 let sprites =
@@ -57,6 +69,8 @@ let sprites =
        ((window_width |> float_of_int) /. 2.)
        ((window_height |> float_of_int) /. 2.)
        Raylib.Color.black)
+
+let reset_sprites () = Array.iter (fun s -> Queue.clear s.trails) sprites
 
 let update_sprite (s : t) (r : Robot.t) =
   let frame_speed =
@@ -71,6 +85,26 @@ let update_sprite (s : t) (r : Robot.t) =
 
   let x = get_screen_x_f r.x in
   let y = get_screen_y_f r.y in
+
+  let trail_frame_speed =
+    (max_trail_speed |> float) *. ((r.speed |> float) /. 100.) |> int_of_float
+  in
+
+  (* is the tank moving? generate a new trail every 1/r.speed seconds *)
+  if trail_frame_speed <> 0 && r.status <> DEAD then (
+    s.trail_frame_counter <- s.trail_frame_counter + 1;
+    if s.trail_frame_counter > 60 / trail_frame_speed then (
+      s.trail_frame_counter <- 0;
+      Queue.add
+        { x; y; rotation = get_screen_degrees_f r.heading; alpha = 1.0 }
+        s.trails));
+
+  Queue.iter (fun (t : trail) -> t.alpha <- t.alpha -. trail_fade) s.trails;
+
+  (if Queue.is_empty s.trails |> not then
+     let q = Queue.peek s.trails in
+     if q.alpha = 0. then Queue.take s.trails |> ignore);
+
   Rectangle.set_x s.tank x;
   Rectangle.set_x s.turret x;
   Rectangle.set_x s.cannon x;
@@ -84,6 +118,17 @@ let update_sprite (s : t) (r : Robot.t) =
       Rectangle.set_x sprite x;
       Rectangle.set_y sprite y)
     s.missiles r.missiles
+
+let draw_trail (s : t) =
+  let srcrec_trail = get_srcrec !trail_texture in
+
+  Queue.iter
+    (fun (tr : trail) ->
+      draw_texture_pro !trail_texture srcrec_trail
+        Rectangle.(create tr.x tr.y (width s.tank) trail_height)
+        (Vector2.create (tank_width /. 2.) (tank_width /. 2.))
+        tr.rotation s.color)
+    s.trails
 
 let draw_sprite (s : t) (r : Robot.t) =
   let x = get_screen_x r.x in

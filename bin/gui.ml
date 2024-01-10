@@ -32,6 +32,7 @@ let tank_texture = ref dummy_texture
 let turret_texture = ref dummy_texture
 let tank_shadow_texture = ref dummy_texture
 let turret_shadow_texture = ref dummy_texture
+let trail_texture = ref dummy_texture
 
 let get_srcrec texture =
   (* Printf.printf "w: %d, h: %d\n" (Texture.width texture)(Texture.height texture); *)
@@ -49,7 +50,8 @@ let load_textures () =
   tank_texture := load_texture "bin/textures/tank.png";
   turret_texture := load_texture "bin/textures/turret.png";
   tank_shadow_texture := load_texture "bin/textures/tank_shadow.png";
-  turret_shadow_texture := load_texture "bin/textures/turret_shadow.png"
+  turret_shadow_texture := load_texture "bin/textures/turret_shadow.png";
+  trail_texture := load_texture "bin/textures/trail.png"
 
 let draw_stat_text text pos_x pos_y color =
   let open Raylib in

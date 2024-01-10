@@ -89,6 +89,8 @@ let draw_game () =
   let open Robot in
   draw_arena ();
 
+  Array.iter draw_trail sprites;
+
   Array.iteri
     (fun i (r : Robot.t) ->
       update_sprite sprites.(i) r;
@@ -160,6 +162,7 @@ let rec loop state =
         let open Raylib in
         if is_key_down Key.R then (
           let init_pos = rand_pos () in
+          reset_sprites ();
           Array.iteri (fun i r -> reset_robot r init_pos.(i)) !all_robots;
           Play)
         else state
@@ -217,6 +220,7 @@ let rec loop state =
           let open Raylib in
           if is_key_pressed Key.R then (
             let init_pos = rand_pos () in
+            reset_sprites ();
             Array.iteri (fun i r -> reset_robot r init_pos.(i)) !all_robots;
             Play)
           else state
