@@ -11,7 +11,6 @@ let cannon_height = tank_width *. 1.2
 let missile_width = cannon_width
 let missile_height = missile_width *. 1.5
 let scan_height = 70.
-let explosion_radius = 50.
 
 let colors = Raylib.[| Color.blue; Color.brown; Color.darkgreen; Color.pink |]
 
@@ -31,8 +30,16 @@ let trail_height = 6.
 let max_trail_speed = 75
 let trail_fade = 0.0
 
+let explosion_radius = 10.
+let explosion_grow = 0.5
+let explosion_speed = 0.1
+let explosion_rate = 60
+let explosion_duration = 2.
+let explosion_spread = 180.
+let explosion_alpha = 0.25
+
 let smoke_duration = 1.
-let smoke_frequency = 120
+let smoke_frequency = 800
 
 type trail = { x : float; y : float; rotation : float; mutable alpha : float }
 
@@ -50,6 +57,12 @@ type t = {
   trails : trail Queue.t;
 }
 
+let explosions =
+  ParticleSystem.init ~emission_rate:explosion_rate ~avg_speed:explosion_speed
+    ~init_alpha:explosion_alpha ~avg_radius:explosion_radius
+    ~grow:explosion_grow ~duration:explosion_duration ~spread:explosion_spread
+    ()
+
 let create init_x init_y color =
   {
     tank = Rectangle.create init_x init_y tank_width tank_width;
@@ -64,10 +77,10 @@ let create init_x init_y color =
           {
             bullet = Rectangle.create init_x init_y missile_width missile_height;
             trail =
-              ParticleSystem.init ~emission_rate:smoke_frequency ~avg_speed:5.
-                ~avg_radius:5. ~duration:smoke_duration
-                ~origin:(Vector2.create init_x init_y)
-                ~spread:10.;
+              ParticleSystem.init ~emission_rate:smoke_frequency ~avg_speed:0.
+                ~randomize_speed:0.5 ~avg_radius:5. ~grow:0.25
+                ~duration:smoke_duration ~init_alpha:0.5
+                ~spread:45. ();
           });
     color;
     frame_counter = 0;
@@ -136,8 +149,10 @@ let update_sprite (s : t) (r : Robot.t) =
       | FLYING ->
           ParticleSystem.emit sprite.trail (Vector2.create x y)
             (get_screen_degrees_f m.heading -. 90.)
+      | EXPLODING -> ParticleSystem.emit explosions (Vector2.create x y) 0.
       | _ -> ());
-      ParticleSystem.simulate sprite.trail)
+      ParticleSystem.simulate sprite.trail;
+      ParticleSystem.simulate explosions)
     s.missiles r.missiles
 
 let draw_trail (s : t) =
@@ -154,34 +169,6 @@ let draw_trail (s : t) =
 let draw_sprite (s : t) (r : Robot.t) =
   let x = get_screen_x r.x in
   let y = get_screen_y r.y in
-
-  (* draw any flying or exploding missile *)
-  Array.iteri
-    (fun i (m : Missile.t) ->
-      (match m.status with
-      | FLYING ->
-          draw_rectangle_pro s.missiles.(i).bullet
-            (Vector2.create (missile_width /. 2.) (missile_height /. 2.))
-            (get_screen_degrees_f m.heading)
-            Color.black
-      | EXPLODING ->
-          let x = get_screen_x m.cur_x in
-          let y = get_screen_y m.cur_y in
-          draw_circle x y explosion_radius (fade Color.yellow 0.5)
-      | _ -> ());
-
-      Queue.iter
-        (fun (p : Particle.t) ->
-          let particle_width = p.radius in
-          let particle_rec =
-            Rectangle.create (Vector2.x p.position) (Vector2.y p.position)
-              particle_width particle_width
-          in
-          draw_rectangle_pro particle_rec
-            (Vector2.create (particle_width /. 2.) (particle_width /. 2.))
-            p.rotation (fade Color.gray p.alpha))
-        s.missiles.(i).trail.particles)
-    r.missiles;
 
   let module R = Rectangle in
   let srcrec_turret = get_srcrec !turret_texture in
@@ -261,6 +248,35 @@ let draw_sprite (s : t) (r : Robot.t) =
        dstrec
        (Vector2.create (skull_width /. 2.) (skull_width /. 2.))
        0. skull_color);
+
+  (* draw any flying or exploding missile *)
+  Array.iteri
+    (fun i (m : Missile.t) ->
+      Queue.iter
+        (fun (p : Particle.t) ->
+          let particle_width = p.radius in
+          let particle_rec =
+            Rectangle.create (Vector2.x p.position) (Vector2.y p.position)
+              particle_width particle_width
+          in
+          draw_rectangle_pro particle_rec
+            (Vector2.create (particle_width /. 2.) (particle_width /. 2.))
+            p.rotation (fade Color.gray p.alpha))
+        s.missiles.(i).trail.particles;
+
+      match m.status with
+      | FLYING ->
+          draw_rectangle_pro s.missiles.(i).bullet
+            (Vector2.create (missile_width /. 2.) (missile_height /. 2.))
+            (get_screen_degrees_f m.heading)
+            Color.black
+      | _ -> ())
+    r.missiles;
+
+  Queue.iter
+    (fun (p : Particle.t) ->
+      draw_circle_v p.position p.radius (fade Color.gray p.alpha))
+    explosions.particles;
 
   (* draw the robot's name floating around its sprite *)
   let fontsize = 20. in

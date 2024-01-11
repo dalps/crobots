@@ -9,11 +9,11 @@ module Particle = struct
     velocity : V.t;
     mutable rotation : float;
     mutable radius : float; (* radius increases over time *)
-    mutable alpha : float; (* alpha decreases over time down to 0 *)
+    mutable alpha : float; (* alpha decreases over time down to 0. *)
   }
 
-  let init ~position ~velocity ~rotation ~radius =
-    { position; velocity; rotation; radius; alpha = 1. }
+  let init ~position ~velocity ~rotation ~radius ~alpha =
+    { position; velocity; rotation; radius; alpha }
 end
 
 module ParticleSystem = struct
@@ -24,11 +24,17 @@ module ParticleSystem = struct
     avg_radius : float;
     duration : float; (* duration in seconds *)
     origin : V.t;
-    spread : float; (* variance to emission heading *)
+    spread : float; (* variance to emission heading (0. - 180.) *)
+    randomize_speed : float;
+    randomize_radius : float;
+    init_alpha : float;
+    grow : float; (* radius increase / decrease per frame *)
     mutable timer : int;
   }
 
-  let init ~emission_rate ~avg_speed ~avg_radius ~duration ~origin ~spread =
+  let init ?(spread = 0.) ?(randomize_speed = 0.) ?(randomize_radius = 0.)
+      ?(grow = 0.) ?(origin = Vector2.zero ()) ?(init_alpha = 1.) ~emission_rate
+      ~avg_speed ~avg_radius ~duration () =
     {
       particles = Queue.create ();
       emission_rate;
@@ -37,6 +43,10 @@ module ParticleSystem = struct
       duration;
       origin;
       spread;
+      randomize_speed;
+      randomize_radius;
+      init_alpha;
+      grow;
       timer = 0;
     }
 
@@ -45,24 +55,20 @@ module ParticleSystem = struct
     ps.timer <- ps.timer + 1;
     if ps.timer > 60 / ps.emission_rate then (
       ps.timer <- 0;
-      let direction_var = ps.spread in
-      let speed_var = 5. in
-      let radius_var = 2. in
       let speed =
         CCFloat.random_range
-          (ps.avg_speed -. speed_var)
-          (ps.avg_speed +. speed_var)
+          (ps.avg_speed -. ps.randomize_speed)
+          (ps.avg_speed +. ps.randomize_speed)
         |> CCRandom.run
       in
       let direction =
-        CCFloat.random_range (heading -. direction_var)
-          (heading +. direction_var)
+        CCFloat.random_range (heading -. ps.spread) (heading +. ps.spread)
         |> CCRandom.run
       in
       let radius =
         CCFloat.random_range
-          (ps.avg_radius -. radius_var)
-          (ps.avg_radius +. radius_var)
+          (ps.avg_radius -. ps.randomize_radius)
+          (ps.avg_radius +. ps.randomize_radius)
         |> CCRandom.run
       in
       let rotation = direction in
@@ -72,7 +78,7 @@ module ParticleSystem = struct
              (V.create
                 (speed *. Float.cos (Robot.deg2rad *. direction))
                 (speed *. Float.sin (Robot.deg2rad *. direction)))
-           ~rotation ~radius)
+           ~rotation ~radius ~alpha:ps.init_alpha)
         ps.particles)
 
   (* simulation stage *)
@@ -82,11 +88,11 @@ module ParticleSystem = struct
         V.(
           set_x p.position (x p.position +. x p.velocity);
           set_y p.position (y p.position +. y p.velocity));
-        p.alpha <- p.alpha -. (1. /. (60. *. ps.duration));
-        p.radius <- p.radius +. 0.01)
+        p.alpha <- p.alpha -. (ps.init_alpha /. (60. *. ps.duration));
+        p.radius <- p.radius +. ps.grow)
       ps.particles;
 
     if Queue.is_empty ps.particles |> not then
       let p = Queue.peek ps.particles in
-      if p.alpha = 0. then Queue.take ps.particles |> ignore
+      if p.alpha <= 0. then Queue.take ps.particles |> ignore
 end
