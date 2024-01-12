@@ -42,10 +42,13 @@ let read_file filename =
 
 let rand_pos () =
   let lt2 x = if x < 2 then 1 else 0 in
+  let margin = 200 in
   let pos =
     Array.init 4 (fun k ->
-        ( Random.int (Robot.max_x / 2) + (Robot.max_x / 2 * (k mod 2)),
-          Random.int (Robot.max_y / 2) + (Robot.max_y / 2 * lt2 k) ))
+        ( Raylib.get_random_value margin ((Robot.max_x / 2) - margin)
+          + (Robot.max_x / 2 * (k mod 2)),
+          Raylib.get_random_value margin ((Robot.max_y / 2) - margin)
+          + (Robot.max_y / 2 * lt2 k) ))
   in
   Array.sort (fun _ _ -> -1 + Random.int 3) pos;
   pos
