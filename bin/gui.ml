@@ -5,7 +5,7 @@ module V = Vector2
 module R = Rectangle
 
 let font_path = "bin/fonts/monogram.ttf"
-let stat_fontsize = 28
+let stat_fontsize = 26
 let stat_fontsize_f = stat_fontsize |> float
 let winner_fontsize = 80
 let font_spacing = 1.
@@ -28,12 +28,21 @@ let text_color = Color.raywhite
 let background_color = Color.create 58 68 102 255
 let skull_color = fade Color.red 0.75
 
-let arena_padding = 15
-let stats_width = 400
-let arena_width = 1000
+let window_width = 1200
+let window_height = 800
 
+let arena_padding = 15
 let arena_texture_width = 96
 let arena_border_thickness = arena_texture_width / 3
+let padding = arena_padding + arena_border_thickness
+let arena_width = window_height - (2 * padding)
+
+let statbox_n = 5
+let stats_width = window_width - arena_width - (arena_border_thickness * 2) - arena_padding * 3
+let stat_height = stat_fontsize
+let statbox_width = stats_width
+let statbox_height = (window_height - ((statbox_n + 1) * arena_padding)) / statbox_n
+let name_sep = 20
 
 let dstrec_arena =
   R.create (arena_padding |> float) (arena_padding |> float)
@@ -53,19 +62,6 @@ let npatch_stat =
   NPatchInfo.create
     (R.create 0. 96. (width |> float) (width |> float))
     border border border border NPatchLayout.Nine_patch
-
-let padding = arena_padding + arena_border_thickness
-let window_height = arena_width + (2 * padding)
-let window_width = window_height + padding + stats_width
-let window_width_f = window_width |> float
-let window_height_f = window_height |> float
-
-let statbox_n = 5
-let statbox_width = stats_width
-let statbox_height = (window_height - ((statbox_n + 1) * padding)) / statbox_n
-
-let stat_height = stat_fontsize
-let name_sep = 20
 
 let get_srcrec texture =
   (* Printf.printf "w: %d, h: %d\n" (Texture.width texture)(Texture.height texture); *)
@@ -184,6 +180,9 @@ let draw_endgame result =
   let t1 = "Quit [Esc] - New match [R]" in
   let w = measure_text_ex !stat_font result h1 font_spacing in
   let t1w = measure_text_ex !stat_font t1 h2 font_spacing in
+  let window_width_f, window_height_f =
+    (window_width |> float, window_height |> float)
+  in
   draw_rectangle 0 0 window_width window_height (fade Color.white 0.35);
   draw_text_ex !winner_font result
     (V.create
@@ -200,14 +199,14 @@ let draw_cycles c =
   let text = Printf.sprintf "CPU cycle: %6d" c in
   let v = measure_stat_text text in
   draw_stat_text text
-    (window_width - (V.x v |> int_of_float) - padding)
-    (window_height - (V.y v |> int_of_float) - padding)
+    (window_width - (V.x v |> int_of_float) - arena_padding)
+    (window_height - (V.y v |> int_of_float) - arena_padding)
     text_color
 
 let draw_fps n =
   let text = Printf.sprintf "FPS: %6d" n in
   let v = measure_stat_text text in
   draw_stat_text text
-    (window_width - (V.x v |> int_of_float) - padding)
-    (window_height - ((V.y v |> int_of_float) * 2) - padding)
+    (window_width - (V.x v |> int_of_float) - arena_padding)
+    (window_height - ((V.y v |> int_of_float) * 2) - arena_padding)
     text_color

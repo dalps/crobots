@@ -57,10 +57,21 @@ let explosions =
     ()
 
 (* flip coordinates on the x axis, scale down by 1/click and translate on the y axis *)
-let get_screen_x x = (x / Robot.click) + padding
-let get_screen_x_f x = get_screen_x x |> float
-let get_screen_y y = (-1 * y / Robot.click) + arena_width + padding
-let get_screen_y_f y = get_screen_y y |> float
+
+let get_screen_x_f x =
+  let robot_x = x / Robot.click |> float in
+  let ratio = (arena_width |> float) /. (Robot.max_x |> float) in
+  (ratio *. robot_x) +. (padding |> float)
+
+let get_screen_x x = get_screen_x_f x |> Float.round |> int_of_float
+
+let get_screen_y_f y =
+  let robot_y = y / Robot.click |> float in
+  let ratio = (arena_width |> float) /. (Robot.max_y |> float) in
+  (-1. *. ratio *. robot_y) +. (arena_width |> float) +. (padding |> float)
+
+let get_screen_y y = get_screen_y_f y |> Float.round |> int_of_float
+
 let get_screen_degrees d = -d + 270
 let get_screen_degrees_f d = get_screen_degrees d |> float
 
