@@ -71,7 +71,7 @@ module ParticleSystem = struct
           (ps.avg_radius +. ps.randomize_radius)
         |> CCRandom.run
       in
-      let rotation = direction in
+      let rotation = 0. in
       Queue.add
         (Particle.init ~position:origin
            ~velocity:

@@ -5,7 +5,7 @@ module V = Vector2
 module R = Rectangle
 
 let font_path = "bin/fonts/monogram.ttf"
-let stat_fontsize = 26
+let stat_fontsize = 28
 let stat_fontsize_f = stat_fontsize |> float
 let winner_fontsize = 80
 let font_spacing = 1.
@@ -33,15 +33,20 @@ let window_height = 800
 
 let arena_padding = 15
 let arena_texture_width = 96
+let bottom_bar_width = window_width
+let bottom_bar_height = 40
 let arena_border_thickness = arena_texture_width / 3
 let padding = arena_padding + arena_border_thickness
-let arena_width = window_height - (2 * padding)
+let arena_width = window_height - (2 * padding) - bottom_bar_height
 
-let statbox_n = 5
-let stats_width = window_width - arena_width - (arena_border_thickness * 2) - arena_padding * 3
+let statbox_n = 4
+let stats_width =
+  window_width - arena_width - (arena_border_thickness * 2) - (arena_padding * 3)
+let stats_height = window_height - bottom_bar_height
 let stat_height = stat_fontsize
 let statbox_width = stats_width
-let statbox_height = (window_height - ((statbox_n + 1) * arena_padding)) / statbox_n
+let statbox_height =
+  (stats_height - ((statbox_n + 1) * arena_padding)) / statbox_n
 let name_sep = 20
 
 let dstrec_arena =
@@ -56,9 +61,16 @@ let npatch_arena =
     (R.create 0. 0. (width |> float) (width |> float))
     border border border border NPatchLayout.Nine_patch
 
-let npatch_stat =
+let npatch_shadow =
   let width = arena_texture_width in
   let border = 16 in
+  NPatchInfo.create
+    (R.create 0. 192. (width |> float) (width |> float))
+    border border border border NPatchLayout.Nine_patch
+
+let npatch_stat =
+  let width = arena_texture_width in
+  let border = 24 in
   NPatchInfo.create
     (R.create 0. 96. (width |> float) (width |> float))
     border border border border NPatchLayout.Nine_patch
@@ -115,9 +127,9 @@ let draw_arena () =
   draw_texture_npatch !box_texture npatch_arena dstrec_arena (V.zero ()) 0.
     Color.white
 
-let draw_stats i (r : Robot.t) color =
+let draw_stats i (r : Robot.t) _ =
   let spr = Printf.sprintf in
-  let pos_x = window_height in
+  let pos_x = arena_width + (padding * 2) in
   let pos_y = arena_padding + ((statbox_height + arena_padding) * i) in
   let col_sep = 150 in
   let row_padding = 20 in
@@ -127,13 +139,12 @@ let draw_stats i (r : Robot.t) color =
     R.create (pos_x |> float) (pos_y |> float) (statbox_width |> float)
       (statbox_height |> float)
   in
-  draw_texture_npatch !box_texture npatch_stat dstrec (V.zero ()) 0.
-    (color_contrast color (-0.));
+  draw_texture_npatch !box_texture npatch_stat dstrec (V.zero ()) 0. Color.white;
   draw_stat_text (spr "%d. %s" i r.name) (pos_x + col_padding)
     (pos_y + row_padding) text_color;
 
   (if r.status = Robot.DEAD then
-     let skull_width = stat_fontsize_f in
+     let skull_width = stat_fontsize_f *. 1.5 in
      let srcrec = get_srcrec !skull_texture in
      let dstrec =
        R.(
@@ -183,7 +194,10 @@ let draw_endgame result =
   let window_width_f, window_height_f =
     (window_width |> float, window_height |> float)
   in
-  draw_rectangle 0 0 window_width window_height (fade Color.white 0.35);
+  begin_blend_mode BlendMode.Multiplied;
+  draw_rectangle 0 0 window_width window_height (fade Color.black 0.35);
+  end_blend_mode ();
+
   draw_text_ex !winner_font result
     (V.create
        ((window_width_f /. 2.) -. (V.x w /. 2.))
@@ -204,9 +218,8 @@ let draw_cycles c =
     text_color
 
 let draw_fps n =
-  let text = Printf.sprintf "FPS: %6d" n in
+  let text = Printf.sprintf "FPS: %3d" n in
   let v = measure_stat_text text in
-  draw_stat_text text
-    (window_width - (V.x v |> int_of_float) - arena_padding)
-    (window_height - ((V.y v |> int_of_float) * 2) - arena_padding)
+  draw_stat_text text arena_padding
+    (window_height - (V.y v |> int_of_float) - arena_padding)
     text_color
