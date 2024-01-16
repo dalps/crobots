@@ -43,7 +43,10 @@ let update_robot i (r : t) =
 
   (* update distance traveled on this heading and position *)
   if r.speed > 0 then (
-    r.range <- r.range + (r.speed / click * robot_speed);
+    let dt = Raylib.get_frame_time () in
+    let dr = (robot_speed |> float) *. dt in
+    let rel_dr = (r.speed |> float) /. (click |> float) *. dr |> Int.of_float in
+    r.range <- r.range + rel_dr;
     r.x <- r.org_x + (cos r.heading * (r.range / click) / 10_000);
     r.y <- r.org_y + (sin r.heading * (r.range / click) / 10_000);
 

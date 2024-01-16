@@ -1,5 +1,5 @@
 let robot_width = 50
-let robot_speed = 7
+let robot_speed = 500 (* speed at 100%, pixels / second *)
 let turn_speed = 50
 let turn_incr = 1
 let accel = 10
