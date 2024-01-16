@@ -20,7 +20,7 @@ go(dest_x, dest_y)
 
   course = plot_course(dest_x, dest_y);
   drive(course, 25);
-  while (distance(loc_x(), loc_y(), dest_x, dest_y) > 50)
+  while (distance(loc_x(), loc_y(), dest_x, dest_y) > 50 && speed() > 0)
     ;
   drive(course, 0);
   while (speed() > 0)

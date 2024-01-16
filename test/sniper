@@ -24,10 +24,10 @@ main()
 
   /* initialize the corner info */
   /* x and y location of a corner, and starting scan degree */
-  c1x = 10;  c1y = 10;  s1 = 0;
-  c2x = 10;  c2y = 990; s2 = 270;
-  c3x = 990; c3y = 990; s3 = 180;
-  c4x = 990; c4y = 10;  s4 = 90;
+  c1x = 50;  c1y = 50;  s1 = 0;
+  c2x = 50;  c2y = 950; s2 = 270;
+  c3x = 950; c3y = 950; s3 = 180;
+  c4x = 950; c4y = 50;  s4 = 90;
   closest = 9999;
   new_corner();       /* start at a random corner */
   d = damage();       /* get current damage */
