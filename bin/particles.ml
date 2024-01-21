@@ -1,5 +1,6 @@
 open Raylib
 open Crobots
+open Math
 
 module V = Vector2
 
@@ -76,8 +77,8 @@ module ParticleSystem = struct
         (Particle.init ~position:origin
            ~velocity:
              (V.create
-                (speed *. Float.cos (Robot.deg2rad *. direction))
-                (speed *. Float.sin (Robot.deg2rad *. direction)))
+                (speed *. Float.cos (_deg2rad *. direction))
+                (speed *. Float.sin (_deg2rad *. direction)))
            ~rotation ~radius ~alpha:ps.init_alpha)
         ps.particles)
 

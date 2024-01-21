@@ -5,7 +5,7 @@ open Particles
 
 module PS = ParticleSystem
 
-let robot_width = Robot.robot_width |> float
+let robot_width = Robot._robot_size
 let tank_width = robot_width
 let turret_width = tank_width *. 0.7
 let cannon_width = tank_width *. 0.2
@@ -59,21 +59,21 @@ let explosions =
 (* flip coordinates on the x axis, scale down by 1/click and translate on the y axis *)
 
 let get_screen_x_f x =
-  let robot_x = x / Robot.click |> float in
-  let ratio = (arena_width |> float) /. (Robot.max_x |> float) in
+  let robot_x = x in
+  let ratio = (arena_width |> float) /. Robot._max_x in
   (ratio *. robot_x) +. (padding |> float)
 
 let get_screen_x x = get_screen_x_f x |> Float.round |> int_of_float
 
 let get_screen_y_f y =
-  let robot_y = y / Robot.click |> float in
-  let ratio = (arena_width |> float) /. (Robot.max_y |> float) in
+  let robot_y = y in
+  let ratio = (arena_width |> float) /. Robot._max_y in
   (-1. *. ratio *. robot_y) +. (arena_width |> float) +. (padding |> float)
 
 let get_screen_y y = get_screen_y_f y |> Float.round |> int_of_float
 
-let get_screen_degrees d = -d + 270
-let get_screen_degrees_f d = get_screen_degrees d |> float
+let get_screen_degrees d = -.d +. 270.
+let get_screen_degrees_f d = get_screen_degrees d
 
 let create init_x init_y color =
   {
@@ -110,7 +110,7 @@ let reset_sprites () = Array.iter (fun s -> Queue.clear s.trails) sprites
 
 let update_sprite (s : t) (r : Robot.t) =
   let frame_speed =
-    (max_frame_speed |> float) *. ((r.speed |> float) /. 100.) |> int_of_float
+    (max_frame_speed |> float) *. (r.speed /. 100.) |> int_of_float
   in
 
   if frame_speed <> 0 && r.status <> DEAD then (
@@ -119,11 +119,11 @@ let update_sprite (s : t) (r : Robot.t) =
       s.frame_counter <- 0;
       s.current_frame <- (s.current_frame + 1) mod 4));
 
-  let x = get_screen_x_f r.x in
-  let y = get_screen_y_f r.y in
+  let x = get_screen_x_f r.p.x in
+  let y = get_screen_y_f r.p.y in
 
   let trail_frame_speed =
-    (max_trail_speed |> float) *. ((r.speed |> float) /. 100.) |> int_of_float
+    (max_trail_speed |> float) *. (r.speed /. 100.) |> int_of_float
   in
 
   (* is the tank moving? generate a new trail every 1/r.speed seconds *)
@@ -147,8 +147,8 @@ let update_sprite (s : t) (r : Robot.t) =
   R.set_y s.turret y;
   Array.iter2
     (fun (sprite : missile_t) (m : Missile.t) ->
-      let x = get_screen_x_f m.cur_x in
-      let y = get_screen_y_f m.cur_y in
+      let x = get_screen_x_f m.p.x in
+      let y = get_screen_y_f m.p.y in
       R.set_x sprite.bullet x;
       R.set_y sprite.bullet y;
       V.set_x sprite.trail.origin x;
@@ -175,8 +175,8 @@ let draw_trail (s : t) =
     s.trails
 
 let draw_sprite (s : t) (r : Robot.t) =
-  let x = get_screen_x r.x in
-  let y = get_screen_y r.y in
+  let x = get_screen_x r.p.x in
+  let y = get_screen_y r.p.y in
 
   let module R = R in
   let srcrec_turret = get_srcrec !turret_texture in
@@ -185,8 +185,8 @@ let draw_sprite (s : t) (r : Robot.t) =
     match r.status with
     | ALIVE ->
         (* draw the scan radar *)
-        let res = r.scan_res |> float in
-        let dir = r.scan_degrees + 90 |> float in
+        let res = r.scan_res in
+        let dir = r.scan_degrees +. 90. in
         if r.scan_cycles > 0 then (
           draw_circle_sector
             (V.create (x |> float) (y |> float))

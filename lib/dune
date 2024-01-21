@@ -1,6 +1,6 @@
 (library
  (name crobots)
- (libraries raylib))
+ (libraries raylib containers))
 
 (ocamllex lexer)
 

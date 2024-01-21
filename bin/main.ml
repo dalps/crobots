@@ -45,10 +45,12 @@ let rand_pos () =
   let margin = 200 in
   let pos =
     Array.init 4 (fun k ->
-        ( Raylib.get_random_value margin ((Robot.max_x / 2) - margin)
-          + (Robot.max_x / 2 * (k mod 2)),
-          Raylib.get_random_value margin ((Robot.max_y / 2) - margin)
-          + (Robot.max_y / 2 * lt2 k) ))
+        ( Raylib.get_random_value margin
+            ((Robot._max_x *. 0.5 |> Float.to_int) - margin)
+          + ((Robot._max_x *. 0.5 |> Float.to_int) * (k mod 2)),
+          Raylib.get_random_value margin
+            ((Robot._max_y *. 0.5 |> Float.to_int) - margin)
+          + ((Robot._max_y *. 0.5 |> Float.to_int) * lt2 k) ))
   in
   Array.sort (fun _ _ -> -1 + Random.int 3) pos;
   pos
@@ -62,29 +64,22 @@ let start_robot (r : Robot.t) =
   r.env <- env
 
 let reset_robot (r : Robot.t) (init_x, init_y) =
-  let x, y = (init_x * Robot.click, init_y * Robot.click) in
+  let x, y = (init_x |> float, init_y |> float) in
   start_robot r;
   r.status <- ALIVE;
-  r.x <- x;
-  r.y <- y;
-  r.org_x <- x;
-  r.org_y <- y;
-  r.last_x <- x;
-  r.last_y <- y;
-  r.range <- 0;
-  r.damage <- 0;
-  r.last_damage <- 0;
-  r.speed <- 0;
-  r.last_speed <- 0;
-  r.d_speed <- 0;
-  r.accel <- 0;
-  r.heading <- 0;
-  r.turret_heading <- 0;
-  r.last_heading <- 0;
-  r.d_heading <- 0;
-  r.scan_degrees <- 0;
+  r.dp.x <- 0.;
+  r.dp.y <- 0.;
+  r.p.x <- x;
+  r.p.y <- y;
+  r.damage <- 0.;
+  r.speed <- 0.;
+  r.d_speed <- 0.;
+  r.heading <- 0.;
+  r.turret_heading <- 0.;
+  r.d_heading <- 0.;
+  r.scan_degrees <- 0.;
   r.scan_cycles <- 0;
-  r.scan_res <- 0;
+  r.scan_res <- 0.;
   r.reload <- 0;
   r.missiles <- Array.init 2 (fun _ -> Missile.init ())
 
@@ -265,11 +260,11 @@ let setup () =
     List.mapi
       (fun i (name, program) ->
         let init_x, init_y = init_pos.(i) in
-        let r = init name program init_x init_y in
+        let r = init name program (init_x |> float) (init_y |> float) in
         start_robot r;
         cur_robot := r;
         sprites.(i) <-
-          Sprite.create (get_screen_x_f r.x) (get_screen_y_f r.y) colors.(i);
+          Sprite.create (get_screen_x_f r.p.x) (get_screen_y_f r.p.y) colors.(i);
         r)
       programs
   in

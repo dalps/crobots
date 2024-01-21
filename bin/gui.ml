@@ -157,30 +157,27 @@ let draw_stats i (r : Robot.t) _ =
      in
      draw_texture_pro !skull_texture srcrec dstrec (V.zero ()) 0. skull_color);
 
-  draw_stat_text (spr "d%%: %d" r.damage) (pos_x + col_padding)
+  draw_stat_text (spr "d%%: %.2f" r.damage) (pos_x + col_padding)
     (pos_y + name_sep + (stat_height * 1))
     text_color;
   draw_stat_text
-    (spr "sc: %d" r.scan_degrees)
+    (spr "sc: %.2f" r.scan_degrees)
     (pos_x + col_padding + col_sep)
     (pos_y + name_sep + (stat_height * 1))
     text_color;
 
-  draw_stat_text (spr "sp: %d" r.speed) (pos_x + col_padding)
+  draw_stat_text (spr "sp: %.2f" r.speed) (pos_x + col_padding)
     (pos_y + name_sep + (stat_height * 2))
     text_color;
-  draw_stat_text (spr "hd: %d" r.heading)
+  draw_stat_text (spr "hd: %.2f" r.heading)
     (pos_x + col_padding + col_sep)
     (pos_y + name_sep + (stat_height * 2))
     text_color;
 
-  draw_stat_text
-    (spr " x: %d" (r.x / Robot.click))
-    (pos_x + col_padding)
+  draw_stat_text (spr " x: %.2f" r.p.x) (pos_x + col_padding)
     (pos_y + name_sep + (stat_height * 3))
     text_color;
-  draw_stat_text
-    (spr " y: %d" (r.y / Robot.click))
+  draw_stat_text (spr " y: %.2f" r.p.y)
     (pos_x + col_padding + col_sep)
     (pos_y + name_sep + (stat_height * 3))
     text_color

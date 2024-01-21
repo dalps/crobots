@@ -1,51 +1,38 @@
+open Math
+
 type status = ALIVE | DEAD
 
 type t = {
   mutable status : status;
   mutable name : string;
-  mutable x : int;
-  mutable y : int;
-  mutable org_x : int;
-  mutable org_y : int;
-  mutable range : int;
-  mutable last_x : int;
-  mutable last_y : int;
-  mutable damage : int;
-  mutable last_damage : int;
-  mutable speed : int;
-  mutable last_speed : int;
-  mutable d_speed : int;
-  mutable accel : int;
-  mutable heading : int;
-  mutable turret_heading : int;
-  mutable last_heading : int;
-  mutable d_heading : int;
-  mutable scan_degrees : int;
+  p : vector;
+  dp : vector;
+  mutable speed : float;
+  mutable d_speed : float;
+  mutable acceleration : float;
+  mutable heading : float;
+  mutable d_heading : float;
+  mutable turret_heading : float;
+  mutable d_turret_heading : float;
+  mutable scan_degrees : float;
   mutable scan_cycles : int;
-  mutable scan_res : int;
+  mutable scan_res : float;
+  mutable damage : float;
   mutable reload : int;
+  mutable missiles : Missile.t array;
   mutable program : Ast.program;
   mutable ep : Ast.expression;
   mutable env : Memory.env_stack;
   mutable mem : Memory.memory;
-  mutable missiles : Missile.t array;
 }
 
-val robot_width : int
-val robot_speed : int
-val turn_speed : int
-val turn_incr : int
-val accel : int
-val collision : int
-val click : int
-val max_x : int
-val max_y : int
-val res_limit : int
+val _robot_size : float
+val _robot_speed : float
+val _max_x : float
+val _max_y : float
+val _res_limit : float
 
-val deg2rad : float
-val rad2deg : float
-
-val init : string -> Ast.instruction -> int -> int -> t
+val init : string -> Ast.instruction -> float -> float -> t
 
 val cur_robot : t ref
 val all_robots : t array ref

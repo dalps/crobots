@@ -1,80 +1,57 @@
-let robot_width = 50
-let robot_speed = 500 (* speed at 100%, pixels / second *)
-let turn_speed = 50
-let turn_incr = 1
-let accel = 10
-let collision = 5
+open Math
+open CCFloat
 
-let click = 10
-let max_x = 1000
-let max_y = 1000
-
-let scan_duration = 5
-
-let trig_scale = 100_000.
-let res_limit = 10
-
-let deg2rad = Float.pi /. 180.
-let rad2deg = 180. /. Float.pi
+let _robot_size = 50.
+let _robot_speed = 50. (* speed at 100%, pixels / second *)
+let _max_x = 1000.
+let _max_y = 1000.
+let _scan_duration = 5
+let _trig_scale = 100_000.
+let _res_limit = 10.
 
 type status = ALIVE | DEAD
 
 type t = {
   mutable status : status;
   mutable name : string;
-  mutable x : int;
-  mutable y : int;
-  mutable org_x : int;
-  mutable org_y : int;
-  mutable range : int;
-  mutable last_x : int;
-  mutable last_y : int;
-  mutable damage : int;
-  mutable last_damage : int;
-  mutable speed : int;
-  mutable last_speed : int;
-  mutable d_speed : int;
-  mutable accel : int;
-  mutable heading : int;
-  mutable turret_heading : int;
-  mutable last_heading : int;
-  mutable d_heading : int;
-  mutable scan_degrees : int;
+  p : vector;
+  dp : vector;
+  mutable speed : float;
+  mutable d_speed : float;
+  mutable acceleration : float;
+  mutable heading : float;
+  mutable d_heading : float;
+  mutable turret_heading : float;
+  mutable d_turret_heading : float;
+  mutable scan_degrees : float;
   mutable scan_cycles : int;
-  mutable scan_res : int;
+  mutable scan_res : float;
+  mutable damage : float;
   mutable reload : int;
+  mutable missiles : Missile.t array;
   mutable program : Ast.program;
   mutable ep : Ast.expression;
   mutable env : Memory.env_stack;
   mutable mem : Memory.memory;
-  mutable missiles : Missile.t array;
 }
 
-let init name program init_x init_y =
-  let x, y = (init_x * click, init_y * click) in
+let init name program x y =
   {
     status = ALIVE;
     name;
-    x;
-    y;
-    org_x = x;
-    org_y = y;
-    last_x = x;
-    last_y = y;
-    range = 0;
-    damage = 0;
-    last_damage = 0;
-    speed = 0;
-    last_speed = 0;
-    d_speed = 0;
-    accel = 0;
-    heading = 0;
-    turret_heading = 0;
-    last_heading = 0;
-    d_heading = 0;
-    scan_degrees = 0;
+    p = { x; y };
+    dp = zero ();
+    speed = 0.;
+    d_speed = 0.;
+    acceleration = 0.;
+    heading = 0.;
+    d_heading = 0.;
+    turret_heading = 0.;
+    d_turret_heading = 0.;
+    scan_degrees = 0.;
     scan_cycles = 0;
-    scan_res = 0;
+    damage = 0.;
+    scan_res = 0.;
     reload = 0;
     missiles = Array.init 2 (fun _ -> Missile.init ());
     program;
@@ -83,99 +60,92 @@ let init name program init_x init_y =
     mem = Memory.init_memory ();
   }
 
-let cur_robot = ref (init "foo" EMPTY 0 0)
+let cur_robot = ref (init "foo" EMPTY 0. 0.)
 let all_robots = ref [||]
 
-let degree_of_int d = abs d mod 360
-let perc_of_int n = max 0 n |> min 100
-
 let scan degree resolution =
-  let res = if abs resolution > res_limit then res_limit else resolution in
-  let degree = degree_of_int degree in
+  let degree, resolution = (of_int degree, of_int resolution) in
+  let res =
+    if abs resolution > _res_limit then _res_limit else abs resolution
+  in
+  let degree = normalize_degrees degree in
   let close_dist = ref 0. in
-  !cur_robot.scan_cycles <- scan_duration;
+  !cur_robot.scan_cycles <- _scan_duration;
   !cur_robot.scan_degrees <- degree;
   !cur_robot.scan_res <- res;
   Array.iter
     (fun r ->
-      if r.status <> DEAD then (
-        let x = (!cur_robot.x / click) - (r.x / click) |> float_of_int in
-        let y = (!cur_robot.y / click) - (r.y / click) |> float_of_int in
-        let d = ref 0 in
+      if Stdlib.(r.status <> DEAD) then
+        let v1, v2 = (rayvec_of_vector !cur_robot.p, rayvec_of_vector r.p) in
+        let d = V.angle v1 v2 * _rad2deg |> round |> normalize_degrees in
+        let d1, d2 =
+          (normalize_degrees (d - res), normalize_degrees (d + res))
+        in
 
-        if x <> 0. then
-          let d' = Float.atan (y /. x) *. rad2deg |> int_of_float in
-          match (r.x >= !cur_robot.x, r.y >= !cur_robot.y) with
-          | true, true -> d := d' (* 1st quadrant *)
-          | true, false -> d := 360 + d' (* 4th quadrant *)
-          | _ -> d := 180 + d' (* 2nd - 3rd quadrant *)
-        else d := if r.y > !cur_robot.y then 90 else 270;
-
-        let b = if degree > res && degree < 360 - res then 0 else 180 in
-        let dd = b + degree in
-        let d1 = b + !d - res in
-        let d2 = b + !d + res in
-
-        if dd >= d1 && dd <= d2 then
-          let distance = Float.sqrt ((x *. x) +. (y *. y)) in
-          if distance < !close_dist || !close_dist = 0. then
-            close_dist := distance))
+        if is_between d1 degree d2 then
+          let distance = V.distance v1 v2 in
+          if (0. < distance && distance < !close_dist) || !close_dist = 0. then
+            close_dist := distance)
     !all_robots;
-  !close_dist |> int_of_float
+  !close_dist |> round |> to_int
 
 let cannon degree range =
-  let range = if range > Missile.mis_range then Missile.mis_range else range in
-  let degree = degree_of_int degree in
-  if range <= 0 then 1
-  else if !cur_robot.reload > 0 then 0
+  let degree, range = (of_int degree, of_int range) in
+  let range =
+    if range > Missile._mis_range then Missile._mis_range else range
+  in
+  let degree = normalize_degrees degree in
+  if range <= 0. then 1
+  else if CCInt.( > ) !cur_robot.reload 0 then 0
   else
     try
       Array.iter
         (fun (m : Missile.t) ->
-          if m.status = AVAIL then (
-            !cur_robot.turret_heading <- degree;
-            !cur_robot.reload <- Missile.reload_cycles;
+          if Stdlib.( = ) m.status AVAIL then (
+            !cur_robot.d_turret_heading <- degree;
+            !cur_robot.reload <- Missile._reload_cycles;
+
             m.status <- FLYING;
-            m.beg_x <- !cur_robot.x;
-            m.beg_y <- !cur_robot.y;
-            m.cur_x <- !cur_robot.x;
-            m.cur_y <- !cur_robot.y;
+            m.o.x <- !cur_robot.p.x;
+            m.o.y <- !cur_robot.p.y;
+            m.p.x <- !cur_robot.p.x;
+            m.p.y <- !cur_robot.p.y;
             m.heading <- degree;
-            m.range <- range * click;
-            m.travelled <- 0;
-            m.count <- Missile.explosion_cycles;
+            m.range <- range;
+            m.count <- Missile._explosion_cycles;
             raise Exit))
         !cur_robot.missiles;
       0
     with Exit -> 1
 
 let drive degree speed =
-  !cur_robot.d_heading <- degree_of_int degree;
+  let degree, speed = (of_int degree, of_int speed) in
+  !cur_robot.d_heading <- normalize_degrees degree;
   !cur_robot.d_speed <- perc_of_int speed
 
-let damage () = !cur_robot.damage
+let damage () = !cur_robot.damage |> round |> to_int
 
-let speed () = !cur_robot.speed
+let speed () = !cur_robot.speed |> round |> to_int
 
-let loc_x () = !cur_robot.x / click
+let loc_x () = !cur_robot.p.x |> round |> to_int
 
-let loc_y () = !cur_robot.y / click
+let loc_y () = !cur_robot.p.y |> round |> to_int
 
 let rand = Random.int
 
-let sqrt x = abs x |> float_of_int |> Float.sqrt |> Float.round |> int_of_float
+let sqrt x = of_int x |> abs |> sqrt |> round |> to_int
 
 let int_trig ?(fact = 1.) f x =
-  degree_of_int x |> float_of_int |> ( *. ) deg2rad |> f |> ( *. ) fact
-  |> Float.round |> int_of_float
+  of_int x |> normalize_degrees |> ( * ) _deg2rad |> f |> ( * ) fact |> round
+  |> to_int
 
-let sin = int_trig Float.sin ~fact:trig_scale
+let sin = int_trig sin ~fact:_trig_scale
 
-let cos = int_trig Float.cos ~fact:trig_scale
+let cos = int_trig cos ~fact:_trig_scale
 
-let tan = int_trig Float.tan ~fact:trig_scale
+let tan = int_trig tan ~fact:_trig_scale
 
 let atan x =
-  x |> float_of_int
-  |> ( *. ) (1. /. trig_scale)
-  |> Float.atan |> ( *. ) rad2deg |> Float.round |> int_of_float
+  x |> of_int
+  |> ( * ) (1. / _trig_scale)
+  |> atan |> ( * ) _rad2deg |> round |> to_int
