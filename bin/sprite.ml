@@ -5,13 +5,13 @@ open Particles
 
 module PS = ParticleSystem
 
-let robot_width = Robot._robot_size
+let ratio = (arena_width |> float) /. Robot._max_x
+
+let robot_width = Robot._robot_size *. ratio
 let tank_width = robot_width
 let turret_width = tank_width *. 0.7
-let cannon_width = tank_width *. 0.2
-let cannon_height = tank_width *. 1.2
-let missile_width = cannon_width
-let missile_height = missile_width *. 1.5
+let missile_width = robot_width *. 0.15
+let missile_height = missile_width *. 2.
 let scan_height = 70.
 
 let colors = Raylib.[| Color.blue; Color.brown; Color.darkgreen; Color.pink |]
@@ -39,12 +39,10 @@ let explosions =
 
 let get_screen_x x =
   let robot_x = x in
-  let ratio = (arena_width |> float) /. Robot._max_x in
   (ratio *. robot_x) +. (padding |> float)
 
 let get_screen_y y =
   let robot_y = y in
-  let ratio = (arena_width |> float) /. Robot._max_y in
   (-1. *. ratio *. robot_y) +. (arena_width |> float) +. (padding |> float)
 
 let get_screen_degrees d = -.d +. 270.
@@ -137,7 +135,6 @@ let draw_sprite (s : t) (r : Robot.t) =
   let x = get_screen_x r.p.x in
   let y = get_screen_y r.p.y in
 
-  let module R = R in
   let srcrec_turret = get_srcrec !turret_texture in
 
   let color_tank, color_turret =
@@ -158,9 +155,24 @@ let draw_sprite (s : t) (r : Robot.t) =
         (g1, g2)
   in
 
-  let tank_texture_width = (Texture.width !tank_texture |> float) /. 4. in
+  (* draw any flying or exploding missile *)
+  Array.iteri
+    (fun i (m : Missile.t) ->
+      match m.status with
+      | FLYING ->
+          draw_rectangle_pro s.missiles.(i).bullet
+            (V.create (missile_width /. 2.) (missile_height /. 2.))
+            (get_screen_degrees m.heading)
+            Color.black
+      | _ -> ())
+    r.missiles;
 
   (* draw the tank, the cannon and the turret *)
+  draw_circle_v (V.create x y)
+    (Motion._collision_radius *. ratio)
+    (fade Color.lightgray 0.5);
+
+  let tank_texture_width = (Texture.width !tank_texture |> float) /. 4. in
   let w =
     R.width s.tank
     *. ((Texture.width !tank_shadow_texture |> float) /. tank_texture_width)
@@ -217,18 +229,7 @@ let draw_sprite (s : t) (r : Robot.t) =
        0. skull_color);
 
   (* draw any flying or exploding missile *)
-  Array.iteri
-    (fun i (m : Missile.t) ->
-      PS.draw_rec s.missiles.(i).trail Color.gray;
-
-      match m.status with
-      | FLYING ->
-          draw_rectangle_pro s.missiles.(i).bullet
-            (V.create (missile_width /. 2.) (missile_height /. 2.))
-            (get_screen_degrees m.heading)
-            Color.black
-      | _ -> ())
-    r.missiles;
+  Array.iter (fun (m : missile_t) -> PS.draw_rec m.trail Color.gray) s.missiles;
 
   PS.draw_circle explosions Color.gray;
 

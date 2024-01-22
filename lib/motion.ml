@@ -5,19 +5,22 @@ open Raylib
 
 let _angular_velocity = 360.
 let _friction = 5.
+let _collision_radius = _robot_size * 0.5 * Float.sqrt 2.
 
-let update_robot _i (r : Robot.t) dt =
+let update_robot i (r : Robot.t) dt =
   (* update speed, moderated by acceleration *)
   r.speed <- V.length (rayvec_of_vector r.dp);
   r.acceleration <- max 0. (r.acceleration + (r.d_speed - r.speed));
 
   (* update heading *)
-  let s = Float.sin ((r.d_heading - r.heading) * _deg2rad) in
+  let dr = r.d_heading - r.heading in
+  let s = if dr = 180. then 1. else Float.sin (dr * _deg2rad) in
   let angular_velocity = _angular_velocity * s in
   r.heading <- r.heading + (angular_velocity * dt) |> normalize_degrees;
 
   (* update turret heading *)
-  let s = Float.sin ((r.d_turret_heading - r.turret_heading) * _deg2rad) in
+  let dr = r.d_turret_heading - r.turret_heading in
+  let s = if dr = 180. then 1. else Float.sin (dr * _deg2rad) in
   let angular_velocity = _angular_velocity * s in
   r.turret_heading <-
     r.turret_heading + (angular_velocity * dt) |> normalize_degrees;
@@ -41,29 +44,41 @@ let update_robot _i (r : Robot.t) dt =
   r.p.y <- r.p.y + (r.dp.y * dt) + (ddp.y * dt * dt * 0.5);
 
   (* check for collision into another robot *)
+  Array.iteri
+    (fun i' (r' : Robot.t) ->
+      let colliding, offset =
+        check_inter_circles r.p _collision_radius r'.p _collision_radius
+      in
+      let _, offset' =
+        check_inter_circles r'.p _collision_radius r.p _collision_radius
+      in
+      if Stdlib.(i <> i' && r'.status <> DEAD) && colliding then (
+        r.p.x <- offset.x;
+        r.p.y <- offset.y;
+        r'.p.x <- offset'.x;
+        r'.p.y <- offset'.y;
+        r.d_speed <- 0.;
+        r'.d_speed <- 0.;
+        Printf.printf "%s collided with %s (D%%: %f, D%%: %f)\n" r.name r'.name
+          r.damage r'.damage))
+    !all_robots;
 
   (* check for collision into a wall *)
-  let square_diag x =
-    let x = (22.5 * Float.sin (((4. * x) - 90.) * _deg2rad)) + 22.5 in
-    1. /. Float.cos (_deg2rad *. x)
-  in
-  let collider = _robot_size * 0.5 * square_diag r.heading in
   let east, north, west, south =
-    ( r.p.x < collider,
-      r.p.y < collider,
-      r.p.x > _max_y - collider,
-      r.p.y > _max_y - collider )
+    ( r.p.x < _collision_radius,
+      r.p.y < _collision_radius,
+      r.p.x > _max_y - _collision_radius,
+      r.p.y > _max_y - _collision_radius )
   in
-  if east then r.p.x <- collider;
-  if west then r.p.x <- _max_x - collider;
-  if north then r.p.y <- collider;
-  if south then r.p.y <- _max_y - collider;
+  if east then r.p.x <- _collision_radius;
+  if west then r.p.x <- _max_x - _collision_radius;
+  if north then r.p.y <- _collision_radius;
+  if south then r.p.y <- _max_y - _collision_radius;
 
   if east || north || west || south then (
     r.d_speed <- 0.;
     r.dp.x <- 0.;
-    r.dp.y <- 0.;
-    r.damage <- r.damage + 0.5)
+    r.dp.y <- 0.)
 
 let exp_damage x =
   if x < 20. then (-1. /. 3. *. x) +. (35. /. 3.)
