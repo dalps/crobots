@@ -21,7 +21,7 @@ let max_trail_speed = 15.
 
 let trail_height = 6.
 
-type missile_t = { bullet : R.t; trail : PS.t }
+type missile_t = { bullet : R.t; trail : PS.t; explosion : PS.t }
 
 type t = {
   tank : R.t;
@@ -32,10 +32,6 @@ type t = {
   mutable current_frame : int;
   trail : PS.t;
 }
-
-let explosions =
-  PS.init ~emission_rate:60 ~avg_speed:0.1 ~init_alpha:0.25 ~avg_radius:10.
-    ~grow:0.25 ~duration:2. ~spread:180. ()
 
 let get_screen_x x =
   let robot_x = x in
@@ -61,8 +57,12 @@ let create init_x init_y color =
             bullet = R.create init_x init_y missile_width missile_height;
             trail =
               PS.init ~emission_rate:20 ~avg_speed:50. ~randomize_speed:0.05
-                ~avg_radius:2. ~randomize_radius:4. ~randomize_rotation:15.
-                ~grow:0.25 ~duration:1. ~init_alpha:0.5 ~spread:15. ();
+                ~avg_radius:1. ~randomize_radius:3. ~randomize_rotation:15.
+                ~grow:0.1 ~duration:1. ~init_alpha:0.5 ~spread:15. ();
+            explosion =
+              PS.init ~emission_rate:60 ~avg_speed:150. ~randomize_speed:50.
+                ~init_alpha:1. ~avg_radius:5. ~randomize_radius:2. ~grow:0.
+                ~duration:0.5 ~spread:360. ();
           });
     color;
     frame_counter = 0;
@@ -118,10 +118,10 @@ let update_sprite (s : t) (r : Robot.t) =
           PS.emit sprite.trail (V.create x y)
             (get_screen_degrees m.heading -. 90.)
             fps
-      | EXPLODING -> PS.emit explosions (V.create x y) 0. fps
+      | EXPLODING -> PS.emit sprite.explosion (V.create x y) 0. fps
       | _ -> ());
       PS.simulate sprite.trail dt;
-      PS.simulate explosions dt)
+      PS.simulate sprite.explosion dt)
     s.missiles r.missiles
 
 let draw_trail (s : t) =
@@ -229,9 +229,11 @@ let draw_sprite (s : t) (r : Robot.t) =
        0. skull_color);
 
   (* draw any flying or exploding missile *)
-  Array.iter (fun (m : missile_t) -> PS.draw_rec m.trail Color.gray) s.missiles;
-
-  PS.draw_circle explosions Color.gray;
+  Array.iter
+    (fun (s : missile_t) ->
+      PS.draw_rec s.trail Color.gray;
+      PS.draw_rec s.explosion Color.black)
+    s.missiles;
 
   (* draw the robot's name floating around its sprite *)
   let fontsize = 20. in
