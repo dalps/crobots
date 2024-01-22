@@ -71,6 +71,7 @@ let reset_robot (r : Robot.t) (init_x, init_y) =
   r.dp.y <- 0.;
   r.p.x <- x;
   r.p.y <- y;
+  r.acceleration <- 0.;
   r.damage <- 0.;
   r.speed <- 0.;
   r.d_speed <- 0.;

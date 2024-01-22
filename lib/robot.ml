@@ -111,7 +111,7 @@ let cannon degree range =
             m.o.y <- !cur_robot.p.y;
             m.p.x <- !cur_robot.p.x;
             m.p.y <- !cur_robot.p.y;
-            m.heading <- degree;
+            m.heading <- !cur_robot.turret_heading;
             m.range <- range;
             m.count <- Missile._explosion_cycles;
             raise Exit))
@@ -126,7 +126,7 @@ let drive degree speed =
 
 let damage () = !cur_robot.damage |> round |> to_int
 
-let speed () = !cur_robot.speed |> round |> to_int
+let speed () = !cur_robot.speed |> max 0. |> min 100. |> round |> to_int
 
 let loc_x () = !cur_robot.p.x |> round |> to_int
 

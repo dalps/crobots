@@ -6,7 +6,8 @@ open Raylib
 let _angular_velocity = 360.
 let _friction = 5.
 let _collision_radius = _robot_size * 0.5 * Float.sqrt 2.
-let _collision_damage = 0.5
+let _collision_damage = 0.05
+let _rebound = -1.
 
 let update_robot (r : Robot.t) dt =
   (* update speed, moderated by acceleration *)
@@ -59,8 +60,10 @@ let update_robot (r : Robot.t) dt =
           r.p.y <- offset.y;
           r'.p.x <- offset'.x;
           r'.p.y <- offset'.y;
+          r'.dp.x <- r'.dp.x * _rebound;
+          r'.dp.y <- r'.dp.y * _rebound;
           r'.d_speed <- 0.;
-          r'.damage <- r'.damage + _collision_damage;
+          r'.damage <- r'.damage + (_collision_damage / 100. * r'.speed);
           true)
         else false)
       !all_robots
@@ -80,8 +83,10 @@ let update_robot (r : Robot.t) dt =
 
   (* collision consequences *)
   if east || north || west || south || colliding then (
-    r.d_speed <- 0.;
-    r.damage <- r.damage + _collision_damage)
+    r.damage <- r.damage + (_collision_damage / 100. * r.speed);
+    r.dp.x <- r.dp.x * _rebound;
+    r.dp.y <- r.dp.y * _rebound;
+    r.d_speed <- 0.)
 
 let exp_damage x =
   if x < 20. then (-1. /. 3. *. x) +. (35. /. 3.)
