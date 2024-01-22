@@ -11,6 +11,7 @@ let _res_limit = 10.
 type status = ALIVE | DEAD
 
 type t = {
+  id : int;
   mutable status : status;
   mutable name : string;
   p : vector;
@@ -34,8 +35,9 @@ type t = {
   mutable mem : Memory.memory;
 }
 
-let init name program x y =
+let init id name program x y =
   {
+    id;
     status = ALIVE;
     name;
     p = { x; y };
@@ -59,7 +61,7 @@ let init name program x y =
     mem = Memory.init_memory ();
   }
 
-let cur_robot = ref (init "foo" EMPTY 0. 0.)
+let cur_robot = ref (init 0 "foo" EMPTY 0. 0.)
 let all_robots = ref [||]
 
 let scan degree resolution =
@@ -74,7 +76,7 @@ let scan degree resolution =
   !cur_robot.scan_res <- res;
   Array.iter
     (fun r ->
-      if Stdlib.(r.status <> DEAD) then
+      if Stdlib.(!cur_robot.id <> r.id && r.status <> DEAD) then
         let v1, v2 = (rayvec_of_vector !cur_robot.p, rayvec_of_vector r.p) in
         let d = V.angle v1 v2 * _rad2deg |> round |> normalize_degrees in
         let d1, d2 =

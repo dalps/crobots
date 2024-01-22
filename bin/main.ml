@@ -260,7 +260,7 @@ let setup () =
     List.mapi
       (fun i (name, program) ->
         let init_x, init_y = init_pos.(i) in
-        let r = init name program (init_x |> float) (init_y |> float) in
+        let r = init i name program (init_x |> float) (init_y |> float) in
         start_robot r;
         cur_robot := r;
         sprites.(i) <-

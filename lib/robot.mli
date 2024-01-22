@@ -3,6 +3,7 @@ open Math
 type status = ALIVE | DEAD
 
 type t = {
+  id : int;
   mutable status : status;
   mutable name : string;
   p : vector;
@@ -31,7 +32,7 @@ val _max_x : float
 val _max_y : float
 val _res_limit : float
 
-val init : string -> Ast.instruction -> float -> float -> t
+val init : int -> string -> Ast.instruction -> float -> float -> t
 
 val cur_robot : t ref
 val all_robots : t array ref

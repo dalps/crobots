@@ -6,8 +6,9 @@ open Raylib
 let _angular_velocity = 360.
 let _friction = 5.
 let _collision_radius = _robot_size * 0.5 * Float.sqrt 2.
+let _collision_damage = 0.5
 
-let update_robot i (r : Robot.t) dt =
+let update_robot (r : Robot.t) dt =
   (* update speed, moderated by acceleration *)
   r.speed <- V.length (rayvec_of_vector r.dp);
   r.acceleration <- max 0. (r.acceleration + (r.d_speed - r.speed));
@@ -44,24 +45,26 @@ let update_robot i (r : Robot.t) dt =
   r.p.y <- r.p.y + (r.dp.y * dt) + (ddp.y * dt * dt * 0.5);
 
   (* check for collision into another robot *)
-  Array.iteri
-    (fun i' (r' : Robot.t) ->
-      let colliding, offset =
-        check_inter_circles r.p _collision_radius r'.p _collision_radius
-      in
-      let _, offset' =
-        check_inter_circles r'.p _collision_radius r.p _collision_radius
-      in
-      if Stdlib.(i <> i' && r'.status <> DEAD) && colliding then (
-        r.p.x <- offset.x;
-        r.p.y <- offset.y;
-        r'.p.x <- offset'.x;
-        r'.p.y <- offset'.y;
-        r.d_speed <- 0.;
-        r'.d_speed <- 0.;
-        Printf.printf "%s collided with %s (D%%: %f, D%%: %f)\n" r.name r'.name
-          r.damage r'.damage))
-    !all_robots;
+  let colliding =
+    Array.exists
+      (fun (r' : Robot.t) ->
+        let colliding, offset =
+          check_inter_circles r.p _collision_radius r'.p _collision_radius
+        in
+        let _, offset' =
+          check_inter_circles r'.p _collision_radius r.p _collision_radius
+        in
+        if Stdlib.(r.id <> r'.id && r'.status <> DEAD) && colliding then (
+          r.p.x <- offset.x;
+          r.p.y <- offset.y;
+          r'.p.x <- offset'.x;
+          r'.p.y <- offset'.y;
+          r'.d_speed <- 0.;
+          r'.damage <- r'.damage + _collision_damage;
+          true)
+        else false)
+      !all_robots
+  in
 
   (* check for collision into a wall *)
   let east, north, west, south =
@@ -75,10 +78,10 @@ let update_robot i (r : Robot.t) dt =
   if north then r.p.y <- _collision_radius;
   if south then r.p.y <- _max_y - _collision_radius;
 
-  if east || north || west || south then (
+  (* collision consequences *)
+  if east || north || west || south || colliding then (
     r.d_speed <- 0.;
-    r.dp.x <- 0.;
-    r.dp.y <- 0.)
+    r.damage <- r.damage + _collision_damage)
 
 let exp_damage x =
   if x < 20. then (-1. /. 3. *. x) +. (35. /. 3.)
@@ -123,7 +126,7 @@ let update_missiles (r : Robot.t) dt =
     r.missiles
 
 let update_all_robots =
-  Array.iteri (fun i (r : Robot.t) ->
+  Array.iter (fun (r : Robot.t) ->
       update_missiles r (get_frame_time ());
       CCInt.(
         if r.scan_cycles > 0 then r.scan_cycles <- r.scan_cycles - 1
@@ -135,4 +138,4 @@ let update_all_robots =
           r.status <- DEAD
       | _ ->
           CCInt.(if r.reload > 0 then r.reload <- r.reload - 1);
-          update_robot i r (get_frame_time ()))
+          update_robot r (get_frame_time ()))
