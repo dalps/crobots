@@ -251,7 +251,7 @@ let setup () =
   init_window window_width window_height "crobots";
   load_fonts ();
   load_textures ();
-  set_target_fps 60;
+  set_target_fps 120;
 
   (* initialize the robot array *)
   let open Robot in
@@ -264,7 +264,7 @@ let setup () =
         start_robot r;
         cur_robot := r;
         sprites.(i) <-
-          Sprite.create (get_screen_x_f r.p.x) (get_screen_y_f r.p.y) colors.(i);
+          Sprite.create (get_screen_x r.p.x) (get_screen_y r.p.y) colors.(i);
         r)
       programs
   in

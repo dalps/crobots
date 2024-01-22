@@ -16,26 +16,10 @@ let scan_height = 70.
 
 let colors = Raylib.[| Color.blue; Color.brown; Color.darkgreen; Color.pink |]
 
-let max_frame_speed = 60
+let max_frame_speed = 60.
+let max_trail_speed = 15.
 
-let trail_time = 60
-let max_trails = 50
 let trail_height = 6.
-let max_trail_speed = 75
-let trail_fade = 0.0
-
-let explosion_radius = 10.
-let explosion_grow = 0.5
-let explosion_speed = 0.1
-let explosion_rate = 60
-let explosion_duration = 2.
-let explosion_spread = 180.
-let explosion_alpha = 0.25
-
-let smoke_duration = 1.
-let smoke_frequency = 800
-
-type trail = { x : float; y : float; rotation : float; mutable alpha : float }
 
 type missile_t = { bullet : R.t; trail : PS.t }
 
@@ -46,34 +30,24 @@ type t = {
   color : Color.t;
   mutable frame_counter : int;
   mutable current_frame : int;
-  mutable trail_frame_counter : int;
-  trails : trail Queue.t;
+  trail : PS.t;
 }
 
 let explosions =
-  PS.init ~emission_rate:explosion_rate ~avg_speed:explosion_speed
-    ~init_alpha:explosion_alpha ~avg_radius:explosion_radius
-    ~grow:explosion_grow ~duration:explosion_duration ~spread:explosion_spread
-    ()
+  PS.init ~emission_rate:60 ~avg_speed:0.1 ~init_alpha:0.25 ~avg_radius:10.
+    ~grow:0.25 ~duration:2. ~spread:180. ()
 
-(* flip coordinates on the x axis, scale down by 1/click and translate on the y axis *)
-
-let get_screen_x_f x =
+let get_screen_x x =
   let robot_x = x in
   let ratio = (arena_width |> float) /. Robot._max_x in
   (ratio *. robot_x) +. (padding |> float)
 
-let get_screen_x x = get_screen_x_f x |> Float.round |> int_of_float
-
-let get_screen_y_f y =
+let get_screen_y y =
   let robot_y = y in
   let ratio = (arena_width |> float) /. Robot._max_y in
   (-1. *. ratio *. robot_y) +. (arena_width |> float) +. (padding |> float)
 
-let get_screen_y y = get_screen_y_f y |> Float.round |> int_of_float
-
 let get_screen_degrees d = -.d +. 270.
-let get_screen_degrees_f d = get_screen_degrees d
 
 let create init_x init_y color =
   {
@@ -88,15 +62,15 @@ let create init_x init_y color =
           {
             bullet = R.create init_x init_y missile_width missile_height;
             trail =
-              PS.init ~emission_rate:smoke_frequency ~avg_speed:0.
-                ~randomize_speed:0.5 ~avg_radius:5. ~grow:0.25
-                ~duration:smoke_duration ~init_alpha:0.5 ~spread:45. ();
+              PS.init ~emission_rate:20 ~avg_speed:50. ~randomize_speed:0.05
+                ~avg_radius:2. ~randomize_radius:4. ~randomize_rotation:15.
+                ~grow:0.25 ~duration:1. ~init_alpha:0.5 ~spread:15. ();
           });
     color;
     frame_counter = 0;
     current_frame = 0;
-    trail_frame_counter = 0;
-    trails = Queue.create ();
+    trail =
+      PS.init ~emission_rate:5 ~avg_speed:0. ~avg_radius:5. ~duration:999. ();
   }
 
 let sprites =
@@ -106,49 +80,37 @@ let sprites =
        ((window_height |> float) /. 2.)
        Raylib.Color.black)
 
-let reset_sprites () = Array.iter (fun s -> Queue.clear s.trails) sprites
+let reset_sprites () = Array.iter (fun s -> PS.clear s.trail) sprites
 
 let update_sprite (s : t) (r : Robot.t) =
-  let frame_speed =
-    (max_frame_speed |> float) *. (r.speed /. 100.) |> int_of_float
-  in
+  let fps, dt = (get_fps (), get_frame_time ()) in
+
+  let frame_speed = max_frame_speed *. (r.speed /. 100.) |> int_of_float in
+  let trail_speed = max_trail_speed *. (r.d_speed /. 100.) |> int_of_float in
 
   if frame_speed <> 0 && r.status <> DEAD then (
     s.frame_counter <- s.frame_counter + 1;
-    if s.frame_counter > 60 / frame_speed then (
+    if s.frame_counter > fps / frame_speed then (
       s.frame_counter <- 0;
       s.current_frame <- (s.current_frame + 1) mod 4));
 
-  let x = get_screen_x_f r.p.x in
-  let y = get_screen_y_f r.p.y in
-
-  let trail_frame_speed =
-    (max_trail_speed |> float) *. (r.speed /. 100.) |> int_of_float
-  in
-
-  (* is the tank moving? generate a new trail every 1/r.speed seconds *)
-  if trail_frame_speed <> 0 && r.status <> DEAD then (
-    s.trail_frame_counter <- s.trail_frame_counter + 1;
-    if s.trail_frame_counter > 60 / trail_frame_speed then (
-      s.trail_frame_counter <- 0;
-      Queue.add
-        { x; y; rotation = get_screen_degrees_f r.heading; alpha = 1.0 }
-        s.trails));
-
-  Queue.iter (fun (t : trail) -> t.alpha <- t.alpha -. trail_fade) s.trails;
-
-  (if Queue.is_empty s.trails |> not then
-     let q = Queue.peek s.trails in
-     if q.alpha = 0. then Queue.take s.trails |> ignore);
+  let x = get_screen_x r.p.x in
+  let y = get_screen_y r.p.y in
 
   R.set_x s.tank x;
   R.set_x s.turret x;
   R.set_y s.tank y;
   R.set_y s.turret y;
+
+  PS.emit ~rate:trail_speed s.trail (V.create x y)
+    (get_screen_degrees r.heading)
+    fps;
+  PS.simulate s.trail dt;
+
   Array.iter2
     (fun (sprite : missile_t) (m : Missile.t) ->
-      let x = get_screen_x_f m.p.x in
-      let y = get_screen_y_f m.p.y in
+      let x = get_screen_x m.p.x in
+      let y = get_screen_y m.p.y in
       R.set_x sprite.bullet x;
       R.set_y sprite.bullet y;
       V.set_x sprite.trail.origin x;
@@ -156,23 +118,20 @@ let update_sprite (s : t) (r : Robot.t) =
       (match m.status with
       | FLYING ->
           PS.emit sprite.trail (V.create x y)
-            (get_screen_degrees_f m.heading -. 90.)
-      | EXPLODING -> PS.emit explosions (V.create x y) 0.
+            (get_screen_degrees m.heading -. 90.)
+            fps
+      | EXPLODING -> PS.emit explosions (V.create x y) 0. fps
       | _ -> ());
-      PS.simulate sprite.trail;
-      PS.simulate explosions)
+      PS.simulate sprite.trail dt;
+      PS.simulate explosions dt)
     s.missiles r.missiles
 
 let draw_trail (s : t) =
   let srcrec_trail = get_srcrec !trail_texture in
+  let origin = V.create (tank_width /. 2.) (tank_width /. 2.) in
 
-  Queue.iter
-    (fun (tr : trail) ->
-      draw_texture_pro !trail_texture srcrec_trail
-        R.(create tr.x tr.y (width s.tank) trail_height)
-        (V.create (tank_width /. 2.) (tank_width /. 2.))
-        tr.rotation s.color)
-    s.trails
+  PS.draw_texture s.trail !trail_texture srcrec_trail (R.width s.tank)
+    trail_height origin s.color
 
 let draw_sprite (s : t) (r : Robot.t) =
   let x = get_screen_x r.p.x in
@@ -188,10 +147,10 @@ let draw_sprite (s : t) (r : Robot.t) =
         let res = r.scan_res in
         let dir = r.scan_degrees +. 90. in
         if r.scan_cycles > 0 then (
-          draw_circle_sector
-            (V.create (x |> float) (y |> float))
-            scan_height (dir +. res) (dir -. res) 1 (fade Color.red 0.1);
-          draw_circle_lines x y scan_height (fade Color.red 0.1));
+          draw_circle_sector (V.create x y) scan_height (dir +. res)
+            (dir -. res) 1 (fade Color.red 0.1);
+          draw_circle_lines (x |> Float.to_int) (y |> Float.to_int) scan_height
+            (fade Color.red 0.1));
         (s.color, s.color)
     | DEAD ->
         let g1 = color_brightness Color.gray 0.5 in
@@ -210,7 +169,7 @@ let draw_sprite (s : t) (r : Robot.t) =
     (get_srcrec !tank_shadow_texture)
     R.(create (x s.tank) (y s.tank) w w)
     (V.create (w /. 2.) (w /. 2.))
-    (get_screen_degrees_f r.heading)
+    (get_screen_degrees r.heading)
     Color.black;
 
   let frame_rec =
@@ -222,7 +181,7 @@ let draw_sprite (s : t) (r : Robot.t) =
 
   draw_texture_pro !tank_texture frame_rec s.tank
     (V.create (tank_width /. 2.) (tank_width /. 2.))
-    (get_screen_degrees_f r.heading)
+    (get_screen_degrees r.heading)
     color_tank;
 
   let w =
@@ -239,12 +198,12 @@ let draw_sprite (s : t) (r : Robot.t) =
     (get_srcrec !turret_shadow_texture)
     R.(create (x s.tank) (y s.tank) w h)
     (V.create (w /. 2.) (w /. 2.))
-    (get_screen_degrees_f r.turret_heading)
+    (get_screen_degrees r.turret_heading)
     Color.black;
 
   draw_texture_pro !turret_texture srcrec_turret s.turret
     (V.create (turret_width /. 2.) (turret_width /. 2.))
-    (get_screen_degrees_f r.turret_heading)
+    (get_screen_degrees r.turret_heading)
     color_turret;
 
   (if r.status = DEAD then
@@ -260,35 +219,25 @@ let draw_sprite (s : t) (r : Robot.t) =
   (* draw any flying or exploding missile *)
   Array.iteri
     (fun i (m : Missile.t) ->
-      Queue.iter
-        (fun (p : Particle.t) ->
-          let particle_width = p.radius in
-          let particle_rec =
-            R.create (V.x p.position) (V.y p.position) particle_width
-              particle_width
-          in
-          draw_rectangle_pro particle_rec
-            (V.create (particle_width /. 2.) (particle_width /. 2.))
-            p.rotation (fade Color.gray p.alpha))
-        s.missiles.(i).trail.particles;
+      PS.draw_rec s.missiles.(i).trail Color.gray;
 
       match m.status with
       | FLYING ->
           draw_rectangle_pro s.missiles.(i).bullet
             (V.create (missile_width /. 2.) (missile_height /. 2.))
-            (get_screen_degrees_f m.heading)
+            (get_screen_degrees m.heading)
             Color.black
       | _ -> ())
     r.missiles;
 
-  Queue.iter
-    (fun (p : Particle.t) ->
-      draw_circle_v p.position p.radius (fade Color.gray p.alpha))
-    explosions.particles;
+  PS.draw_circle explosions Color.gray;
 
   (* draw the robot's name floating around its sprite *)
   let fontsize = 20. in
   let v = measure_text_ex !stat_font r.name fontsize font_spacing in
+  let x, y =
+    (x |> Float.round |> Float.to_int, y |> Float.round |> Float.to_int)
+  in
   draw_stat_text_s r.name
     (let vx = V.x v |> int_of_float in
      let x' = x - (vx / 2) in
