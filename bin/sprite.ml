@@ -145,9 +145,9 @@ let draw_sprite (s : t) (r : Robot.t) =
         let dir = r.scan_degrees +. 90. in
         if r.scan_cycles > 0 then (
           draw_circle_sector (V.create x y) scan_height (dir +. res)
-            (dir -. res) 1 (fade Color.red 0.1);
+            (dir -. res) 1 (fade s.color 0.25);
           draw_circle_lines (x |> Float.to_int) (y |> Float.to_int) scan_height
-            (fade Color.red 0.1));
+            (fade s.color 0.25));
         (s.color, s.color)
     | DEAD ->
         let g1 = color_brightness Color.gray 0.5 in
