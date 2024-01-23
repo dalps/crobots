@@ -1,6 +1,10 @@
 open Crobots
 open Sprite
 open Gui
+open Draw
+open Defs
+
+let debug = false
 
 let usage_msg = "crobots <robot-programs>"
 
@@ -84,27 +88,6 @@ let reset_robot (r : Robot.t) (init_x, init_y) =
   r.reload <- 0;
   r.missiles <- Array.init 2 (fun _ -> Missile.init ())
 
-let draw_game () =
-  let open Robot in
-  draw_arena ();
-
-  Array.iter draw_trail sprites;
-
-  Array.iteri
-    (fun i (r : Robot.t) ->
-      update_sprite sprites.(i) r;
-      if r.status = DEAD then draw_sprite sprites.(i) r;
-      draw_stats i r sprites.(i).color)
-    !all_robots;
-
-  (* draw active robots on top of dead ones *)
-  Array.iteri
-    (fun i (r : Robot.t) -> if r.status = ALIVE then draw_sprite sprites.(i) r)
-    !all_robots;
-
-  draw_fps (Raylib.get_fps ());
-  draw_cycles !cycle
-
 let play () =
   let open Robot in
   incr cycle;
@@ -151,8 +134,8 @@ let rec loop state =
         let open Raylib in
         begin_drawing ();
         clear_background background_color;
-        draw_game ();
-        draw_endgame result;
+        draw_game !cycle;
+        draw_endgame result; (* change to robot option *)
         end_drawing ();
         display := update_cycles);
 
@@ -186,7 +169,7 @@ let rec loop state =
         let open Raylib in
         begin_drawing ();
         clear_background background_color;
-        draw_game ();
+        draw_game !cycle;
         end_drawing ();
         display := update_cycles);
 
@@ -195,7 +178,7 @@ let rec loop state =
          - all missiles of dead robots have exploded *)
       let state' =
         if
-          robots_left <= 1
+          (robots_left <= if debug then -1 else 1)
           && Array.for_all
                (fun r ->
                  Array.for_all
@@ -242,9 +225,11 @@ let setup () =
            (f, ast))
          filenames
     (* if only one robot was supplied, duplicate it *)
-    |> function
-    | [ x ] -> [ x; x ]
-    | l -> l
+    |>
+    if debug then fun x -> x
+    else function
+      | [ x ] -> [ x; x ]
+      | l -> l
   in
 
   (* initialize raylib *)
@@ -252,7 +237,7 @@ let setup () =
   init_window window_width window_height "crobots";
   load_fonts ();
   load_textures ();
-  set_target_fps 120;
+  set_target_fps 0;
 
   (* initialize the robot array *)
   let open Robot in

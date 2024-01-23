@@ -1,45 +1,10 @@
 open Crobots
 open Raylib
-
-module V = Vector2
-module R = Rectangle
-
-let window_width = 1200
-let window_height = 900
-
-let font_path = "bin/fonts/monogram.ttf"
-let stat_fontsize = 28
-let stat_fontsize_f = stat_fontsize |> float
-let winner_fontsize = 80
-let font_spacing = 1.
-let stat_font = ref (Raylib.get_font_default ())
-let winner_font = ref (Raylib.get_font_default ())
-
-let dummy_texture =
-  Texture2D.create Unsigned.UInt.zero 0 0 0 PixelFormat.Compressed_astc_4x4_rgba
-
-let skull_texture = ref dummy_texture
-let tank_texture = ref dummy_texture
-let turret_texture = ref dummy_texture
-let tank_shadow_texture = ref dummy_texture
-let turret_shadow_texture = ref dummy_texture
-let trail_texture = ref dummy_texture
-let box_texture = ref dummy_texture
-let arena_shadow_texture = ref dummy_texture
+open Defs
 
 let text_color = Color.raywhite
 let background_color = Color.create 58 68 102 255
 let skull_color = fade Color.red 0.75
-
-let arena_padding = 15
-let arena_texture_width = 96
-let arena_w = arena_texture_width |> float
-let bottom_bar_width = window_width - (arena_padding * 2)
-let bottom_bar_height = 50
-let arena_border_thickness = arena_texture_width / 3
-let padding = arena_padding + arena_border_thickness
-let arena_width =
-  window_height - (2 * padding) - (bottom_bar_height + arena_padding)
 
 let statbox_n = 4
 let stats_width =
@@ -76,43 +41,6 @@ let npatch_slab =
   NPatchInfo.create
     (R.create 0. (96. *. 3.) arena_w 38.)
     12 12 12 12 NPatchLayout.Nine_patch
-
-let get_srcrec texture =
-  R.create 0. 0.
-    (Texture.width texture |> float)
-    (Texture.height texture |> float)
-
-let load_fonts () =
-  stat_font := load_font_ex font_path stat_fontsize None;
-  winner_font := load_font_ex font_path winner_fontsize None;
-  gen_texture_mipmaps (addr (Font.texture !stat_font));
-  set_texture_filter (Font.texture !stat_font) TextureFilter.Point
-
-let unload_fonts () =
-  unload_font !stat_font;
-  unload_font !winner_font
-
-let load_textures () =
-  skull_texture := load_texture "bin/textures/skull.png";
-  tank_texture := load_texture "bin/textures/tank.png";
-  turret_texture := load_texture "bin/textures/turret.png";
-  tank_shadow_texture := load_texture "bin/textures/tank_shadow.png";
-  turret_shadow_texture := load_texture "bin/textures/turret_shadow.png";
-  trail_texture := load_texture "bin/textures/trail.png";
-  box_texture := load_texture "bin/textures/gui.png"
-
-let draw_stat_text text pos_x pos_y color =
-  draw_text_ex !stat_font text
-    (V.create (pos_x |> float) (pos_y |> float))
-    stat_fontsize_f font_spacing color
-
-let draw_stat_text_s text pos_x pos_y size color =
-  draw_text_ex !stat_font text
-    (V.create (pos_x |> float) (pos_y |> float))
-    size font_spacing color
-
-let measure_stat_text text =
-  measure_text_ex !stat_font text stat_fontsize_f font_spacing
 
 let draw_arena () =
   draw_texture_npatch !box_texture npatch_arena dstrec_arena (V.zero ()) 0.
@@ -227,7 +155,8 @@ let draw_endgame result =
   let dstrec =
     R.create
       (((window_width |> float) *. 0.5) -. (t1_width *. 0.5))
-      (((window_height |> float) *. 0.5) -. (t1_height *. 0.5) +. textbox_height *. 0.75)
+      (((window_height |> float) *. 0.5)
+      -. (t1_height *. 0.5) +. (textbox_height *. 0.75))
       t1_width t1_height
   in
   draw_texture_npatch !box_texture npatch_slab dstrec (V.zero ()) 0. Color.gray;
@@ -240,7 +169,7 @@ let draw_endgame result =
   draw_text_ex !winner_font t1
     (V.create
        ((window_width_f /. 2.) -. (V.x t1w /. 2.) +. 4.)
-       ((window_height_f /. 2.) -. (V.y t1w /. 2.) +. textbox_height *. 0.75))
+       ((window_height_f /. 2.) -. (V.y t1w /. 2.) +. (textbox_height *. 0.75)))
     h2 font_spacing text_color
 
 let draw_cycles c =
