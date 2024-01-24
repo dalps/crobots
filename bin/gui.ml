@@ -4,6 +4,9 @@ open Defs
 
 let text_color = Color.raywhite
 let background_color = Color.create 58 68 102 255
+let arena_bg_color = Color.create 10 10 10 255
+let lines_color = Color.create 30 30 30 255
+let bullet_color = Color.white
 let skull_color = fade Color.red 0.75
 
 let statbox_n = 4
@@ -43,49 +46,58 @@ let npatch_slab =
     12 12 12 12 NPatchLayout.Nine_patch
 
 let draw_arena () =
+  draw_rectangle (padding - 10) (padding - 10) (arena_width + 20)
+    (arena_width + 20) arena_bg_color;
   draw_texture_npatch !box_texture npatch_arena dstrec_arena (V.zero ()) 0.
     Color.white;
-  draw_rectangle_lines padding padding arena_width arena_width Color.lightgray;
+  draw_rectangle_lines padding padding arena_width arena_width lines_color;
   draw_line padding
     (padding + (arena_width / 2))
     (padding + arena_width)
     (padding + (arena_width / 2))
-    Color.lightgray;
+    lines_color;
   draw_line
     (padding + (arena_width / 2))
     padding
     (padding + (arena_width / 2))
-    (padding + arena_width) Color.lightgray
+    (padding + arena_width) lines_color
 
 let draw_stats i (r : Robot.t) _ =
   let spr = Printf.sprintf in
   let pos_x = arena_width + (padding * 2) in
   let pos_y = arena_padding + ((statbox_height + arena_padding) * i) in
+  let pos_x_f, pos_y_f = (pos_x |> float, pos_y |> float) in
   let padding_x = 32 in
 
   let title_text = spr "%d.%s" i r.name in
   let wh = measure_stat_text title_text in
   let wp = measure_stat_text "AA: 000" in
   let dstrec =
-    R.create (pos_x |> float) (pos_y |> float) (statbox_width |> float)
-      (statbox_height |> float)
+    R.create pos_x_f pos_y_f (statbox_width |> float) (statbox_height |> float)
   in
   draw_texture_npatch !box_texture npatch_stat dstrec (V.zero ()) 0. Color.white;
 
   let avatar_size = 72 in
 
   let dstrec =
-    R.create (pos_x |> float) (pos_y |> float) (statbox_width |> float)
-      (avatar_size |> float)
+    R.create pos_x_f pos_y_f (statbox_width |> float) (avatar_size |> float)
   in
   draw_texture_npatch !box_texture npatch_slab dstrec (V.zero ()) 0. Color.white;
 
-  let dstrec =
-    R.create (pos_x |> float) (pos_y |> float) (avatar_size |> float)
-      (avatar_size |> float)
+  (* let dstrec =
+    R.create pos_x_f pos_y_f (avatar_size |> float) (avatar_size |> float)
   in
   draw_texture_npatch !box_texture npatch_avatar dstrec (V.zero ()) 0.
-    Color.white;
+    Color.white; *)
+
+  Sprite.(
+    let c = sprites.(i).color in
+    draw
+      (create
+         (pos_x_f +. ((avatar_size |> float) *. 0.5))
+         (pos_y_f +. ((avatar_size |> float) *. 0.5))
+         c)
+      0. 0. c c);
 
   let dstrec =
     R.create (arena_padding |> float)
@@ -106,12 +118,8 @@ let draw_stats i (r : Robot.t) _ =
      let dstrec =
        R.(
          create
-           ((pos_x |> float)
-           +. ((avatar_size |> float) *. 0.5)
-           -. (skull_width *. 0.5))
-           ((pos_y |> float)
-           +. ((avatar_size |> float) *. 0.5)
-           -. (skull_width *. 0.5))
+           (pos_x_f +. ((avatar_size |> float) *. 0.5) -. (skull_width *. 0.5))
+           (pos_y_f +. ((avatar_size |> float) *. 0.5) -. (skull_width *. 0.5))
            skull_width skull_width)
      in
      draw_texture_pro !skull_texture srcrec dstrec (V.zero ()) 0. skull_color);

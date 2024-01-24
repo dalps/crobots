@@ -1,6 +1,10 @@
 open Raylib
 open CCFloat
-open Crobots.Math
+
+module V = Vector2
+
+let _deg2rad = pi / 180.
+let _rad2deg = 180. / pi
 
 module Particle = struct
   type t = {
@@ -52,43 +56,48 @@ module ParticleSystem = struct
     }
 
   (* emission stage *)
-  let emit (ps : t) ?(rate = 0) origin heading fps =
-    CCInt.(ps.timer <- ps.timer + 1);
-    let rate =
-      if CCInt.(rate <> 0) then rate else ps.emission_rate
+  let emit1 (ps : t) origin heading =
+    let speed =
+      random_range
+        (ps.avg_speed - ps.randomize_speed)
+        (ps.avg_speed + ps.randomize_speed)
+      |> CCRandom.run
     in
+    let rotation =
+      random_range
+        (heading - ps.randomize_rotation)
+        (heading + ps.randomize_rotation)
+      |> CCRandom.run
+    in
+    let direction =
+      random_range (heading - ps.spread) (heading + ps.spread) |> CCRandom.run
+    in
+    let radius =
+      random_range
+        (ps.avg_radius - ps.randomize_radius)
+        (ps.avg_radius + ps.randomize_radius)
+      |> CCRandom.run
+    in
+    Queue.add
+      (Particle.init
+         ~position:V.(create (x origin) (y origin))
+         ~velocity:
+           (V.create
+              (speed * Float.cos (_deg2rad * direction))
+              (speed * Float.sin (_deg2rad * direction)))
+         ~rotation ~radius ~alpha:ps.init_alpha)
+      ps.particles
+
+  let emit_time (ps : t) ?(rate = 0) origin heading fps =
+    CCInt.(ps.timer <- ps.timer + 1);
+    let rate = if CCInt.(rate <> 0) then rate else ps.emission_rate in
     let f = CCInt.(fps / rate) in
-    if CCInt.(f <> 0 && ps.timer mod f = 0) then
-      let speed =
-        random_range
-          (ps.avg_speed - ps.randomize_speed)
-          (ps.avg_speed + ps.randomize_speed)
-        |> CCRandom.run
-      in
-      let rotation =
-        random_range
-          (heading - ps.randomize_rotation)
-          (heading + ps.randomize_rotation)
-        |> CCRandom.run
-      in
-      let direction =
-        random_range (heading - ps.spread) (heading + ps.spread) |> CCRandom.run
-      in
-      let radius =
-        random_range
-          (ps.avg_radius - ps.randomize_radius)
-          (ps.avg_radius + ps.randomize_radius)
-        |> CCRandom.run
-      in
-      Queue.add
-        (Particle.init
-           ~position:V.(create (x origin) (y origin))
-           ~velocity:
-             (V.create
-                (speed * Float.cos (_deg2rad * direction))
-                (speed * Float.sin (_deg2rad * direction)))
-           ~rotation ~radius ~alpha:ps.init_alpha)
-        ps.particles
+    if CCInt.(f <> 0 && ps.timer mod f = 0) then emit1 ps origin heading
+
+  let emit_burst (ps : t) origin heading n =
+    for _ = 1 to n do
+      emit1 ps origin heading
+    done
 
   (* simulation stage *)
   let simulate (ps : t) dt =

@@ -8,14 +8,14 @@ let draw_trail (s : t) =
   let srcrec_trail = get_srcrec !trail_texture in
   let origin = V.create (tank_width /. 2.) (tank_width /. 2.) in
 
+  begin_blend_mode BlendMode.Additive;
   PS.draw_texture s.trail !trail_texture srcrec_trail (R.width s.tank)
-    trail_height origin s.color
+    trail_height origin s.color;
+  end_blend_mode ()
 
 let draw_sprite (s : t) (r : Robot.t) =
   let x = get_screen_x r.p.x in
   let y = get_screen_y r.p.y in
-
-  let srcrec_turret = get_srcrec !turret_texture in
 
   let color_tank, color_turret =
     match r.status with
@@ -43,60 +43,12 @@ let draw_sprite (s : t) (r : Robot.t) =
           draw_rectangle_pro s.missiles.(i).bullet
             (V.create (missile_width /. 2.) (missile_height /. 2.))
             (get_screen_degrees m.heading)
-            Color.black
+            bullet_color
       | _ -> ())
     r.missiles;
 
   (* draw the tank, the cannon and the turret *)
-  draw_circle_v (V.create x y)
-    (Motion._collision_radius *. ratio)
-    (fade Color.lightgray 0.5);
-
-  let tank_texture_width = (Texture.width !tank_texture |> float) /. 4. in
-  let w =
-    R.width s.tank
-    *. ((Texture.width !tank_shadow_texture |> float) /. tank_texture_width)
-  in
-  draw_texture_pro !tank_shadow_texture
-    (get_srcrec !tank_shadow_texture)
-    R.(create (x s.tank) (y s.tank) w w)
-    (V.create (w /. 2.) (w /. 2.))
-    (get_screen_degrees r.heading)
-    Color.black;
-
-  let frame_rec =
-    R.create
-      ((s.current_frame |> float) *. tank_texture_width)
-      0. tank_texture_width
-      (Texture.height !tank_texture |> float)
-  in
-
-  draw_texture_pro !tank_texture frame_rec s.tank
-    (V.create (tank_width /. 2.) (tank_width /. 2.))
-    (get_screen_degrees r.heading)
-    color_tank;
-
-  let w =
-    R.width s.turret
-    *. ((Texture.width !turret_shadow_texture |> float)
-       /. (Texture.width !turret_texture |> float))
-  in
-  let h =
-    R.height s.turret
-    *. ((Texture.height !turret_shadow_texture |> float)
-       /. (Texture.height !turret_texture |> float))
-  in
-  draw_texture_pro !turret_shadow_texture
-    (get_srcrec !turret_shadow_texture)
-    R.(create (x s.tank) (y s.tank) w h)
-    (V.create (w /. 2.) (w /. 2.))
-    (get_screen_degrees r.turret_heading)
-    Color.black;
-
-  draw_texture_pro !turret_texture srcrec_turret s.turret
-    (V.create (turret_width /. 2.) (turret_width /. 2.))
-    (get_screen_degrees r.turret_heading)
-    color_turret;
+  Sprite.draw s r.heading r.turret_heading color_tank color_turret;
 
   (if r.status = DEAD then
      let skull_width = tank_width *. 0.5 in
@@ -112,7 +64,7 @@ let draw_sprite (s : t) (r : Robot.t) =
   Array.iter
     (fun (s : missile_t) ->
       PS.draw_rec s.trail Color.gray;
-      PS.draw_rec s.explosion Color.black)
+      PS.draw_rec s.explosion bullet_color)
     s.missiles;
 
   (* draw the robot's name floating around its sprite *)

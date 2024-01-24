@@ -8,7 +8,7 @@ module PS = Particles.ParticleSystem
 (* *** Dimensions *** *)
 
 let window_width = 1200
-let window_height = 900
+let window_height = window_width - 300
 
 let arena_padding = 15
 let arena_texture_width = 96
