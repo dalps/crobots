@@ -67,6 +67,7 @@ let string_of_intrinsic = function
   | DRIVE -> "drive"
   | DAMAGE -> "damage"
   | SPEED -> "speed"
+  | HEADING -> "heading"
   | LOC_X -> "loc_x"
   | LOC_Y -> "loc_y"
   | RAND -> "rand"

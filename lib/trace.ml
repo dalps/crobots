@@ -59,6 +59,7 @@ let apply_intrinsic args = function
       None
   | DAMAGE -> Some (apply0 damage args)
   | SPEED -> Some (apply0 speed args)
+  | HEADING -> Some (apply0 heading args)
   | LOC_X -> Some (apply0 loc_x args)
   | LOC_Y -> Some (apply0 loc_y args)
   | RAND -> Some (apply1 rand args)

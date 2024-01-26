@@ -60,6 +60,9 @@ val damage : unit -> int
 val speed : unit -> int
 (* returns the current percent of speed *)
 
+val heading : unit -> int
+(* returns the current heading *)
+
 val loc_x : unit -> int
 (* returns the robot's current x axis location *)
 

@@ -122,3 +122,11 @@ let%test "scan-out-of-reach-2" =
   cur_robot := r1;
   let d = scan 45 0 in
   d = 0
+
+let%test "heading" =
+  let r1 = Robot.init 1 "test1" EMPTY 500. 500. in
+  all_robots := [| r1 |];
+  cur_robot := r1;
+  let d = heading () in
+  drive 180 0;
+  d = 0

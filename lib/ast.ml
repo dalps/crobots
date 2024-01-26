@@ -6,6 +6,7 @@ type intrinsic =
   | DRIVE
   | DAMAGE
   | SPEED
+  | HEADING
   | LOC_X
   | LOC_Y
   | RAND

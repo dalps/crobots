@@ -62,6 +62,7 @@ let init_stack () =
   add_env env "drive" (Intrinsic DRIVE);
   add_env env "damage" (Intrinsic DAMAGE);
   add_env env "speed" (Intrinsic SPEED);
+  add_env env "heading" (Intrinsic HEADING);
   add_env env "loc_x" (Intrinsic LOC_X);
   add_env env "loc_y" (Intrinsic LOC_Y);
   add_env env "rand" (Intrinsic RAND);

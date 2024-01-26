@@ -104,6 +104,10 @@ new_corner() {
   /* find the heading we need to get to the desired corner */
   angle = plot_course(x,y);
 
+  while (heading() != angle) {
+    drive(angle,0);
+  }
+
   /* start drive train, full speed */
   drive(angle,100);
 
