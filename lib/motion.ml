@@ -16,13 +16,19 @@ let update_robot (r : Robot.t) dt =
 
   (* update heading *)
   let dr = r.d_heading - r.heading in
-  let s = if dr = 180. then 1. else Float.sin (dr * _deg2rad) in
+  let s =
+    if equal_precision ~epsilon:0.001 (abs dr) 180. then 1.
+    else Float.sin (dr * _deg2rad)
+  in
   let angular_velocity = _angular_velocity * s in
   r.heading <- r.heading + (angular_velocity * dt) |> normalize_degrees;
 
   (* update turret heading *)
   let dr = r.d_turret_heading - r.turret_heading in
-  let s = if dr = 180. then 1. else Float.sin (dr * _deg2rad) in
+  let s =
+    if equal_precision ~epsilon:0.001 (abs dr) 180. then 1.
+    else Float.sin (dr * _deg2rad)
+  in
   let angular_velocity = _angular_velocity * s in
   r.turret_heading <-
     r.turret_heading + (angular_velocity * dt) |> normalize_degrees;

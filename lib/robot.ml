@@ -128,7 +128,7 @@ let damage () = !cur_robot.damage |> round |> to_int
 
 let speed () = !cur_robot.speed |> max 0. |> min 100. |> round |> to_int
 
-let heading () = !cur_robot.heading |> round |> to_int
+let heading () = !cur_robot.heading |> round |> to_int |> fun x -> x mod 360
 
 let loc_x () = !cur_robot.p.x |> round |> to_int
 
