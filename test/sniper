@@ -104,12 +104,18 @@ new_corner() {
   /* find the heading we need to get to the desired corner */
   angle = plot_course(x,y);
 
-  while (heading() != angle) {
-    drive(angle,0);
-  }
+  /* turn until heading towards the exact angle */
+  drive(angle,0);
+
+  while (heading() != angle)
+    ;
 
   /* start drive train, full speed */
   drive(angle,100);
+
+  /* make sure the robot is moving before testing its speed */
+  while (speed() < 5)
+    ;
 
   /* keep traveling until we are within 100 meters */
   /* speed is checked in case we run into wall, other robot */

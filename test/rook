@@ -5,17 +5,31 @@ int course;
 int boundary;
 int d;
 
+turn(angle) {
+  drive(angle, 0);
+
+  while (heading() != angle)
+    ;
+}
+
+accel(angle, sp) {
+  drive(angle, sp);
+
+  while (speed() < 5)
+    ;
+}
+
 main()
 {
   int y;
 
   /* move to center of board */
   if (loc_y() < 500) {
-    drive(90,70);                              /* start moving */
+    accel(90,70);                              /* start moving */
     while (loc_y() - 500 < 20 && speed() > 0)  /* stop near center */
       ;
   } else {
-    drive(270,70);                             /* start moving */
+    accel(270,70);                             /* start moving */
     while (loc_y() - 500 > 20 && speed() > 0)  /* stop near center */
       ;
   }
@@ -24,7 +38,7 @@ main()
   /* initialize starting parameters */
   d = damage();
   course = 0;
-  boundary = 995;
+  boundary = 960;
   drive(course,30);
 
   /* main loop */
@@ -68,13 +82,14 @@ look(deg)
 
 change() {
   if (course == 0) {
-    boundary = 5;
+    boundary = 60;
     course = 180;
   } else {
-    boundary = 995;
+    boundary = 960;
     course = 0;
   }
-  drive(course,30);
+  turn(course);
+  accel(course,100);
 }
 
 
