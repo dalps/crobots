@@ -76,7 +76,7 @@ let call_fun (env, mem) vals f =
   match find_env env f with
   | Fun (pars, instr) -> (
       try
-        add_topenv f env;
+        add_topenv env;
         List.iter2
           (fun x -> function
             | CONST n -> add_var env mem ~init:n x
@@ -95,7 +95,7 @@ let call_fun (env, mem) vals f =
       match apply_intrinsic vals i with
       | None -> NIL
       | Some n -> CONST n)
-  | _ -> failwith "not a function"
+  | _ -> failwith (Printf.sprintf "%s is not a function" f)
 
 let rec trace_args st vals f = function
   | [] -> call_fun st vals f
@@ -117,10 +117,10 @@ and trace1_expr ((env, mem) as st) e =
   | CALL_EXEC s -> (
       match trace1_instr st (Instr s) with
       | St ->
-          ignore (pop_blocks env);
+          ignore (pop_frame env);
           NIL
       | Ret n ->
-          ignore (pop_blocks env);
+          ignore (pop_frame env);
           CONST n
       | Instr s' -> CALL_EXEC s')
   | UNARY_EXPR (uop, CONST n) -> CONST ((fun_of_uop uop) n)
@@ -170,12 +170,14 @@ and trace1_instr ((env, mem) as st) s =
           let e' = trace1_expr st e in
           Instr (WHILE_EXEC (e', s, g))
       | BLOCK s ->
-          add_topenv block_tag env;
+          add_topenv env;
           Instr (BLOCK_EXEC s) |> trace1_instr st
       | BLOCK_EXEC s -> (
           match trace1_instr st (Instr s) with
           | Instr s' -> Instr (BLOCK_EXEC s')
-          | Ret n -> Ret n
+          | Ret n ->
+              ignore (pop_frame env);
+              Ret n
           | St ->
               ignore (pop_frame env);
               St)
