@@ -5,9 +5,7 @@ open Raylib
 
 let _angular_velocity = 360.
 let _friction = 5.
-let _collision_radius = _robot_size * 0.5 * Float.sqrt 2.
 let _collision_damage = 0.05
-let _rebound = -1.
 
 let update_robot (r : Robot.t) dt =
   (* update speed, moderated by acceleration *)
@@ -55,43 +53,62 @@ let update_robot (r : Robot.t) dt =
   let colliding =
     Array.exists
       (fun (r' : Robot.t) ->
-        let colliding, offset =
-          check_inter_circles r.p _collision_radius r'.p _collision_radius
+        Stdlib.(r.id <> r'.id && r'.status <> DEAD)
+        &&
+        let collision =
+          check_intersection_squares
+            (square_vertices_v (rayvec_of_vector r.p) _robot_size r.heading)
+            (square_vertices_v (rayvec_of_vector r'.p) _robot_size r'.heading)
         in
-        let _, offset' =
-          check_inter_circles r'.p _collision_radius r.p _collision_radius
-        in
-        if Stdlib.(r.id <> r'.id && r'.status <> DEAD) && colliding then (
-          r.p.x <- offset.x;
-          r.p.y <- offset.y;
-          r'.p.x <- offset'.x;
-          r'.p.y <- offset'.y;
-          r'.dp.x <- r'.dp.x * _rebound;
-          r'.dp.y <- r'.dp.y * _rebound;
+
+        if collision.test then (
+          let p = V.scale collision.axis collision.penetration in
+          let v, v' =
+            ( collide _robot_mass (rayvec_of_vector r.p) (rayvec_of_vector r.dp)
+                _robot_mass (rayvec_of_vector r'.p) (rayvec_of_vector r'.dp),
+              collide _robot_mass (rayvec_of_vector r'.p)
+                (rayvec_of_vector r'.dp) _robot_mass (rayvec_of_vector r.p)
+                (rayvec_of_vector r.dp) )
+          in
+          r.p.x <- (r.p.x + V.(x p));
+          r.p.y <- (r.p.y + V.(y p));
+          r.dp.x <- V.(x v);
+          r.dp.y <- V.(y v);
+          r'.dp.x <- V.(x v');
+          r'.dp.y <- V.(y v');
           r'.d_speed <- 0.;
-          r'.damage <- r'.damage + (_collision_damage / 100. * r'.speed);
-          true)
-        else false)
+          r'.damage <- r'.damage + (_collision_damage / 100. * r'.speed));
+        collision.test)
       !all_robots
   in
 
+  let robot_radius = (_robot_size * 0.5) + square_diag r.heading in
+
   (* check for collision into a wall *)
   let east, north, west, south =
-    ( r.p.x < _collision_radius,
-      r.p.y < _collision_radius,
-      r.p.x > _max_y - _collision_radius,
-      r.p.y > _max_y - _collision_radius )
+    ( r.p.x < robot_radius,
+      r.p.y < robot_radius,
+      r.p.x > _max_y - robot_radius,
+      r.p.y > _max_y - robot_radius )
   in
-  if east then r.p.x <- _collision_radius;
-  if west then r.p.x <- _max_x - _collision_radius;
-  if north then r.p.y <- _collision_radius;
-  if south then r.p.y <- _max_y - _collision_radius;
+  if east then r.p.x <- robot_radius;
+  if west then r.p.x <- _max_x - robot_radius;
+  if north then r.p.y <- robot_radius;
+  if south then r.p.y <- _max_y - robot_radius;
+
+  let v =
+    V.(
+      if east || west then create 1. 0.
+      else if north || south then create 0. 1.
+      else zero ())
+    |> V.reflect (rayvec_of_vector r.dp)
+  in
+  r.dp.x <- V.(x v);
+  r.dp.y <- V.(y v);
 
   (* collision consequences *)
   if east || north || west || south || colliding then (
     r.damage <- r.damage + (_collision_damage / 100. * r.speed);
-    r.dp.x <- r.dp.x * _rebound;
-    r.dp.y <- r.dp.y * _rebound;
     r.d_speed <- 0.)
 
 let exp_damage x =

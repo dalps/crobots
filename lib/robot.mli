@@ -28,6 +28,7 @@ type t = {
 }
 
 val _robot_size : float
+val _robot_mass : float
 val _max_x : float
 val _max_y : float
 val _res_limit : float

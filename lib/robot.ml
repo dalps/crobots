@@ -2,6 +2,7 @@ open Math
 open CCFloat
 
 let _robot_size = 50.
+let _robot_mass = 50.
 let _max_x = 1000.
 let _max_y = 1000.
 let _scan_duration = 5
