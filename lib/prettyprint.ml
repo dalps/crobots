@@ -20,9 +20,12 @@ let string_of_bop = function
   | LEQ -> "<="
   | LAND -> "&&"
   | LOR -> "||"
+  | LSHIFT -> "<<"
+  | RSHIFT -> ">>"
 
 let string_of_uop = function
   | UMINUS -> "-"
+  | LNOT -> "!"
 
 let rec string_of_expr = function
   | NIL -> "nil"

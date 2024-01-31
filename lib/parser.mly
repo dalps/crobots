@@ -9,8 +9,9 @@
 %token MUL "*" DIV "/" MOD "%"
 %token ADD "+" MINUS "-"
 %token LT "<" GT ">" LEQ "<=" GEQ ">=" 
+%token LSHIFT "<<" RSHIFT ">>"
 %token EQ "==" NEQ "!=" 
-%token LAND "&&" LOR "||" 
+%token LAND "&&" LOR "||" LNOT "!"
 %token SEMICOLON ";" COMMA ","
 %token ASSIGN "=" INCR "++" DECR "--" ADD_ASSIGN "+=" SUB_ASSIGN "-="
 %token MUL_ASSIGN "*=" DIV_ASSIGN "/=" MOD_ASSIGN "%="
@@ -27,6 +28,7 @@
 %left "&&"
 %left "==" "!="
 %left "<" ">" "<=" ">="
+%left "<<" ">>"
 %left "+" "-"
 %left "*" "/" "%"
 
@@ -149,6 +151,9 @@ let binary_op ==
 | "!="; { NEQ }
 | "&&"; { LAND }
 | "||"; { LOR }
+| "<<"; { LSHIFT }
+| ">>"; { RSHIFT }
 
 let unary_op ==
 | "-"; { UMINUS }
+| "!"; { LNOT }

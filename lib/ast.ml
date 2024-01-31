@@ -30,8 +30,10 @@ type binary_op =
   | LEQ
   | LAND
   | LOR
+  | LSHIFT
+  | RSHIFT
 
-type unary_op = UMINUS
+type unary_op = UMINUS | LNOT
 
 type parameters = identifier list
 

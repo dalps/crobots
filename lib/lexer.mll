@@ -33,8 +33,11 @@ rule read_token = parse
 | "/=" { DIV_ASSIGN }
 | "%=" { MOD_ASSIGN }
 | ',' { COMMA }
+| '!' { LNOT }
 | "&&" { LAND }
 | "||" { LOR }
+| "<<" { LSHIFT }
+| ">>" { RSHIFT }
 | '<' { LT }
 | '>' { GT }
 | "<=" { LEQ }

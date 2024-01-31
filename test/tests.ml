@@ -292,6 +292,25 @@ let%test "foo-nesting-2" =
   }"
   |> parse |> trace |> last = CONST 1
 
+let%test "booleans" =
+  "
+  arrow(p,q) {
+    return !p || q;
+  }
+
+  main() {
+      return arrow(0,0) == 1 && !0 || 1 == 1 &&
+             arrow(1,0) == 0 && arrow(1,1) == 1; 
+  }"
+  |> parse |> trace |> last = CONST 1
+
+let%test "shift" =
+  "
+  main() {
+      return 2 << 4 + 1 == 64 && 1 - (2 >> 4) == 1; 
+  }"
+  |> parse |> trace |> last = CONST 1
+
 let%test "comments" =
   "
   /* foo is a c00l function */

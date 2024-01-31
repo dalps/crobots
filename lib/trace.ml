@@ -6,9 +6,6 @@ exception NoRuleApplies
 
 exception WrongArguments of int * int
 
-let fun_of_uop = function
-  | UMINUS -> ( ~- )
-
 let int_of_bool = function
   | true -> 1
   | false -> 0
@@ -19,12 +16,17 @@ let bool_of_int = function
 
 let int_and x y = (bool_of_int x && bool_of_int y) |> int_of_bool
 let int_or x y = (bool_of_int x || bool_of_int y) |> int_of_bool
+let int_not x = bool_of_int x |> not |> int_of_bool
 let int_eq x y = x = y |> int_of_bool
 let int_neq x y = x <> y |> int_of_bool
 let int_gt x y = x > y |> int_of_bool
 let int_lt x y = x < y |> int_of_bool
 let int_geq x y = x >= y |> int_of_bool
 let int_leq x y = x <= y |> int_of_bool
+
+let fun_of_uop = function
+  | UMINUS -> ( ~- )
+  | LNOT -> int_not
 
 let fun_of_bop = function
   | ADD -> ( + )
@@ -40,6 +42,8 @@ let fun_of_bop = function
   | LEQ -> int_leq
   | LAND -> int_and
   | LOR -> int_or
+  | LSHIFT -> Int.shift_left
+  | RSHIFT -> Int.shift_right
 
 let apply0 f = function
   | [] -> f ()
