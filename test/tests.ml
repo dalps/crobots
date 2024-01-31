@@ -272,9 +272,9 @@ let%test "comments" =
   /* foo is a c00l function */
   foo(w,x,y,z) { return x * y + w * z; }
 
-  /*
-    main is not so cool :'(
-  */
+  /*******************************
+   *   main is not so cool :'(   *
+   *******************************/
   main() {
     int w = 2; // why did i declare this?
     int y = w;
