@@ -267,6 +267,31 @@ let%test "foo-nesting" =
   }"
   |> parse |> trace |> last = CONST 1
 
+let%test "foo-nesting-2" =
+  "
+  foo(x, y) {
+    {
+      int z = 7;
+      y = y + (--x);
+
+      if (y > 0) {
+        int x = 7;
+
+        return ++y;
+      }
+      else {
+        return y;  
+      }
+    }
+  }
+
+  main() {
+    int x = 20;
+
+    return foo(x,3) == 23 && x == 20;
+  }"
+  |> parse |> trace |> last = CONST 1
+
 let%test "comments" =
   "
   /* foo is a c00l function */
@@ -352,7 +377,28 @@ let%test "procedure" =
     while (i < deg)
       i = i + 1;
   }
-  " |> parse |> trace |> last = CONST 3
+  "
+  |> parse |> trace |> last = CONST 3
+
+let%test "assign-op" =
+  "
+  normalize_degrees(deg) {
+    while (deg < 0) deg += 360;
+
+    deg %= 360;
+    
+    return deg;
+  }
+
+  main() {
+    int a = normalize_degrees(-30);
+    int b = normalize_degrees(360);
+    int c = normalize_degrees(421);
+
+    return a == 330 && b == 0 && c == 61;
+  }
+  "
+  |> parse |> trace |> last = CONST 1
 
 let%test "parse-rabbit" =
   "

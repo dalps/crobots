@@ -12,7 +12,8 @@
 %token EQ "==" NEQ "!=" 
 %token LAND "&&" LOR "||" 
 %token SEMICOLON ";" COMMA ","
-%token ASSIGN "=" INCR "++" DECR "--"
+%token ASSIGN "=" INCR "++" DECR "--" ADD_ASSIGN "+=" SUB_ASSIGN "-="
+%token MUL_ASSIGN "*=" DIV_ASSIGN "/=" MOD_ASSIGN "%="
 %token INT_TYPE "int"
 %token RETURN "return"
 %token IF "if" ELSE "else"
@@ -104,6 +105,7 @@ let expr :=
 let assignment_expr :=
 | binary_expr
 | ~ = identifier; "="; ~ = assignment_expr; <ASSIGN>
+| x = identifier; op = assignment_op; e = assignment_expr; { ASSIGN (x, BINARY_EXPR (IDE x, op, e)) }
 
 let binary_expr :=
 | unary_expr
@@ -111,9 +113,8 @@ let binary_expr :=
 
 let unary_expr :=
 | primary_expr
-| ~ = unary_op; ~ =unary_expr; <UNARY_EXPR>
-| "--"; x = identifier; { ASSIGN (x, BINARY_EXPR (IDE x, SUB, CONST 1)) }
-| "++"; x = identifier; { ASSIGN (x, BINARY_EXPR (IDE x, ADD, CONST 1)) }
+| ~ = unary_op; ~ = unary_expr; <UNARY_EXPR>
+| op = prefix_op; x = identifier; { ASSIGN (x, BINARY_EXPR (IDE x, op, CONST 1)) }
 
 let primary_expr :=
 | ~ = identifier; <IDE>
@@ -122,6 +123,17 @@ let primary_expr :=
 | "("; ~ = expr; ")"; <>
 
 let identifier := "x"
+
+let assignment_op :=
+| "*="; { MUL }
+| "/="; { DIV }
+| "%="; { MOD }
+| "+="; { ADD }
+| "-="; { SUB }
+
+let prefix_op :=
+| "++"; { ADD }
+| "--"; { SUB }
 
 let binary_op ==
 | "*"; { MUL }

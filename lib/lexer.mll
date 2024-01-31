@@ -27,6 +27,11 @@ rule read_token = parse
 | '+' { ADD }
 | '-' { MINUS }
 | '=' { ASSIGN }
+| "+=" { ADD_ASSIGN }
+| "-=" { SUB_ASSIGN }
+| "*=" { MUL_ASSIGN }
+| "/=" { DIV_ASSIGN }
+| "%=" { MOD_ASSIGN }
 | ',' { COMMA }
 | "&&" { LAND }
 | "||" { LOR }
