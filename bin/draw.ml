@@ -8,7 +8,7 @@ let draw_trail (s : t) =
   let srcrec_trail = get_srcrec !trail_texture in
   let origin = V.create (tank_width /. 2.) (tank_width /. 2.) in
 
-  begin_blend_mode BlendMode.Additive;
+  begin_blend_mode BlendMode.Alpha;
   PS.draw_texture s.trail !trail_texture srcrec_trail (R.width s.tank)
     trail_height origin s.color;
   end_blend_mode ()

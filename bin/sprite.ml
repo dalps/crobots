@@ -143,3 +143,50 @@ let draw (s : t) heading turret_heading color_tank color_turret =
     (V.create (turret_width / 2.) (turret_width / 2.))
     (get_screen_degrees turret_heading)
     color_turret
+
+let draw_still size pos color_tank color_turret =
+  let tank_texture_width = (Texture.width !tank_texture |> float) / 4. in
+  let srcrec_tank, srcrec_turret =
+    ( R.create 0. 0. tank_texture_width (Texture.height !tank_texture |> float),
+      get_srcrec !turret_texture )
+  in
+  let heading = -90. in
+
+  let shadow_w =
+    size * ((Texture.width !tank_shadow_texture |> float) / tank_texture_width)
+  in
+  draw_texture_pro !tank_shadow_texture
+    (get_srcrec !tank_shadow_texture)
+    (R.create (V.x pos) (V.y pos) shadow_w shadow_w)
+    (V.create (shadow_w / 2.) (shadow_w / 2.))
+    heading Color.black;
+
+  draw_texture_pro !tank_texture srcrec_tank
+    (R.create (V.x pos) (V.y pos) size size)
+    (V.create (size / 2.) (size / 2.))
+    heading color_tank;
+
+  let turret_w = size * (turret_width / tank_width) in
+  let turret_h =
+    turret_w
+    * ((Texture.height !turret_texture |> float)
+      / (Texture.width !turret_texture |> float))
+  in
+  let shadow_w, shadow_h =
+    ( turret_w
+      * ((Texture.width !turret_shadow_texture |> float)
+        / (Texture.width !turret_texture |> float)),
+      turret_h
+      * ((Texture.height !turret_shadow_texture |> float)
+        / (Texture.height !turret_texture |> float)) )
+  in
+  draw_texture_pro !turret_shadow_texture
+    (get_srcrec !turret_shadow_texture)
+    (R.create (V.x pos) (V.y pos) shadow_w shadow_h)
+    (V.create (shadow_w / 2.) (shadow_w / 2.))
+    heading Color.black;
+
+  draw_texture_pro !turret_texture srcrec_turret
+    (R.create (V.x pos) (V.y pos) turret_w turret_h)
+    (V.create (turret_w / 2.) (turret_w / 2.))
+    heading color_turret

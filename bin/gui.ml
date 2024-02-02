@@ -2,11 +2,13 @@ open Crobots
 open Raylib
 open Defs
 
-let text_color = Color.raywhite
+let dark_theme = false
+let light_theme_colors = Color.(white, raywhite, black, create 225 225 225 255)
+let dark_theme_colors =
+  Color.(white, create 10 10 10 255, white, create 30 30 30 255)
 let background_color = Color.create 58 68 102 255
-let arena_bg_color = Color.create 10 10 10 255
-let lines_color = Color.create 30 30 30 255
-let bullet_color = Color.white
+let text_color, arena_bg_color, bullet_color, lines_color =
+  if dark_theme then dark_theme_colors else light_theme_colors
 let skull_color = fade Color.red 0.75
 
 let statbox_n = 4
@@ -84,20 +86,19 @@ let draw_stats i (r : Robot.t) _ =
   in
   draw_texture_npatch !box_texture npatch_slab dstrec (V.zero ()) 0. Color.white;
 
-  (* let dstrec =
+  let dstrec =
     R.create pos_x_f pos_y_f (avatar_size |> float) (avatar_size |> float)
   in
   draw_texture_npatch !box_texture npatch_avatar dstrec (V.zero ()) 0.
-    Color.white; *)
-
+    Color.white;
   Sprite.(
     let c = sprites.(i).color in
-    draw
-      (create
-         (pos_x_f +. ((avatar_size |> float) *. 0.5))
-         (pos_y_f +. ((avatar_size |> float) *. 0.5))
-         c)
-      0. 0. c c);
+    draw_still 30.
+      V.(
+        create
+          (pos_x_f +. ((avatar_size |> float) *. 0.5))
+          (pos_y_f +. ((avatar_size |> float) *. 0.5)))
+      c c);
 
   let dstrec =
     R.create (arena_padding |> float)
