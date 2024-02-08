@@ -419,6 +419,24 @@ let%test "assign-op" =
   "
   |> parse |> trace |> last = CONST 1
 
+let%test "return-none" =
+  "
+  int x = 1;
+
+  foo() {
+    if (x > 0) return;
+
+    x = 42;
+  }
+
+  main () {
+    foo();
+
+    return x;
+  }
+  "
+  |> parse |> trace |> last = CONST 1
+
 let%test "parse-rabbit" =
   "
   /* rabbit */

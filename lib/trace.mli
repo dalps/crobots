@@ -13,6 +13,8 @@ type conf =
   (* the result of instructions that cannot be reduced further *)
   | Ret of int
   (* the result of return statements with an expression *)
+  | RetNone
+  (* the result of return statements without an expression *)
   | Instr of Ast.instruction
   (* the result of computations that can be reduced further *)
 

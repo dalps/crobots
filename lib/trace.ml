@@ -74,7 +74,7 @@ let apply_intrinsic args = function
   | ATAN -> Some (apply1 atan args)
 
 type state = env_stack * memory
-type conf = St | Ret of int | Instr of instruction
+type conf = St | Ret of int | RetNone | Instr of instruction
 
 let call_fun (env, mem) vals f =
   match find_env env f with
@@ -120,7 +120,7 @@ and trace1_expr ((env, mem) as st) e =
   | CALL (f, es) -> trace_args st [] f es
   | CALL_EXEC s -> (
       match trace1_instr st (Instr s) with
-      | St ->
+      | St | RetNone ->
           ignore (pop_frame env);
           NIL
       | Ret n ->
@@ -142,7 +142,7 @@ and trace1_expr ((env, mem) as st) e =
 
 and trace1_instr ((env, mem) as st) s =
   match s with
-  | St | Ret _ -> raise NoRuleApplies
+  | St | Ret _ | RetNone -> raise NoRuleApplies
   | Instr s -> (
       match s with
       | VARDECL id ->
@@ -179,14 +179,11 @@ and trace1_instr ((env, mem) as st) s =
       | BLOCK_EXEC s -> (
           match trace1_instr st (Instr s) with
           | Instr s' -> Instr (BLOCK_EXEC s')
-          | Ret n ->
+          | st_or_ret ->
               ignore (pop_frame env);
-              Ret n
-          | St ->
-              ignore (pop_frame env);
-              St)
+              st_or_ret)
       | RET o ->
-          Option.fold o ~none:St ~some:(function
+          Option.fold o ~none:RetNone ~some:(function
             | CONST n -> Ret n
             | e ->
                 let e' = trace1_expr st e in
@@ -199,7 +196,7 @@ and trace1_instr ((env, mem) as st) s =
           match trace1_instr st (Instr s1) with
           | Instr s1' -> Instr (SEQ (s1', s2))
           | St -> Instr s2
-          | Ret n -> Ret n)
+          | ret -> ret)
       | _ -> St)
 
 let rec trace_instr st conf =
