@@ -1,6 +1,9 @@
 open Math
 open CCFloat
 
+let pr = Printf.printf
+let debug = false
+
 let _robot_size = 50.
 let _robot_mass = 50.
 let _max_x = 1000.
@@ -52,19 +55,26 @@ let scan degree resolution =
   !cur_robot.scan_cycles <- _scan_duration;
   !cur_robot.scan_degrees <- degree;
   !cur_robot.scan_res <- res;
+  if debug then
+    pr "###### %s is scanning at %f res %f\n" !cur_robot.name degree resolution;
   Array.iter
     (fun r ->
-      if Stdlib.(!cur_robot.id <> r.id && r.status <> DEAD) then
-        let v1, v2 = (rayvec_of_vector !cur_robot.p, rayvec_of_vector r.p) in
-        let d = V.angle v1 v2 * _rad2deg |> round |> normalize_degrees in
+      if Stdlib.(!cur_robot.id <> r.id && r.status <> DEAD) then (
+        let x, y = (!cur_robot.p.x - r.p.x, !cur_robot.p.y - r.p.y) in
+        let d =
+          (Float.atan2 y x * _rad2deg) + 180. |> round |> normalize_degrees
+        in
         let d1, d2 =
           (normalize_degrees (d - res), normalize_degrees (d + res))
         in
+        if debug then
+          pr "testing %s at angle %f (%f < %f < %f)\n" r.name d d1 degree d2;
 
-        if is_between d1 degree d2 then
-          let distance = V.distance v1 v2 in
+        if is_between d1 degree d2 then (
+          if debug then pr "detected %s\n" r.name;
+          let distance = Math.distance !cur_robot.p r.p in
           if (0. < distance && distance < !close_dist) || !close_dist = 0. then
-            close_dist := distance)
+            close_dist := distance)))
     !all_robots;
   !close_dist |> round |> to_int
 

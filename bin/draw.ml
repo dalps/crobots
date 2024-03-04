@@ -22,7 +22,7 @@ let draw_sprite (s : t) (r : Robot.t) =
     | ALIVE ->
         (* draw the scan radar *)
         let res = r.scan_res in
-        let dir = r.scan_degrees +. 90. in
+        let dir = get_screen_degrees r.scan_degrees +. 90. in
         if r.scan_cycles > 0 then (
           draw_circle_sector (V.create x y) scan_height (dir +. res)
             (dir -. res) 1 (fade s.color 0.25);
