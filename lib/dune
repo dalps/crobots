@@ -1,6 +1,7 @@
 (library
  (name crobots)
- (libraries raylib containers))
+ (libraries raylib containers)
+ (preprocess (staged_pps ppx_import)))
 
 (ocamllex lexer)
 

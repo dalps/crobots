@@ -216,16 +216,19 @@ and trace_expr_st ((env, mem) as st) e =
   try (env, mem, e) :: trace_expr_st st (trace1_expr st e)
   with NoRuleApplies -> [ (env, mem, e) ]
 
-let mem0 = init_memory ()
-let env0 = init_stack ()
-let st0 = (env0, mem0)
+let init () =
+  let mem0 = init_memory () in
+  let env0 = init_stack () in
+  (env0, mem0)
 
 let trace s =
+  let st0 = init () in
   let conf0 = Instr s in
   ignore (trace_instr st0 conf0);
   trace_expr st0 Ast.entry_point
 
 let trace_st s =
+  let st0 = init () in
   let conf0 = Instr s in
   ignore (trace_instr st0 conf0);
   trace_expr_st st0 Ast.entry_point

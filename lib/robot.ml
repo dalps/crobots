@@ -11,30 +11,7 @@ let _res_limit = 10.
 
 type status = ALIVE | DEAD
 
-type t = {
-  id : int;
-  mutable status : status;
-  mutable name : string;
-  p : vector;
-  dp : vector;
-  mutable speed : float;
-  mutable d_speed : float;
-  mutable acceleration : float;
-  mutable heading : float;
-  mutable d_heading : float;
-  mutable turret_heading : float;
-  mutable d_turret_heading : float;
-  mutable scan_degrees : float;
-  mutable scan_cycles : int;
-  mutable scan_res : float;
-  mutable damage : float;
-  mutable reload : int;
-  mutable missiles : Missile.t array;
-  mutable program : Ast.program;
-  mutable ep : Ast.expression;
-  mutable env : Memory.env_stack;
-  mutable mem : Memory.memory;
-}
+type t = [%import: Robot.t]
 
 let init id name program x y =
   {
