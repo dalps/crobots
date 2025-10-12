@@ -1,20 +1,26 @@
 # 🤖 CROBOTS2000 🤖
 
 <p align="center">
-  <img src="art/demo.gif" width="300" alt="demo"/>
+  <img src="art/preview.png" width="500" alt="demo"/>
 </p>
 
-A silly remake of the vintage game [CROBOTS](http://tpoindex.github.io/crobots/) with 2D graphics and rigid body physics!
-
-Made for fun with the [OCaml bindings](https://github.com/tjammer/raylib-ocaml) of the [raylib](https://github.com/tjammer/raylib-ocaml) library.
+This is a remake of the vintage videogame [CROBOTS](http://tpoindex.github.io/crobots/) with 2D graphics and rigid body physics provided by [raylib](https://github.com/tjammer/raylib-ocaml) (more precisely, with the [OCaml bindings](https://github.com/tjammer/raylib-ocaml) of the library).
 
 ## Play
+
+To run this game on your computer, you'll need a working installation of OCaml with the `opam` package manager and the `dune` build system installed. Once you have that sorted, you can start the game with the command:
 
 ```bash
 dune exec crobots <robot-files>
 ```
 
-Watch the sample robots in the `test` directory compete, or write and test your own robots!
+There are examples working robots are in the [test directory](test/). In the command line below, we make two rabbits and a sniper fight:
+
+```bash
+dune exec crobots test/rabbit test/rabbit test/sniper
+```
+
+Now you can watch the sample robots compete or enjoy spinning your own robots!
 
 ## Robot API
 
@@ -50,3 +56,11 @@ The physics engine introduces a few changes to the robot API. The robot programm
   </p>
 
 + Acceleration takes a few more CPU cycles than the original game. Before testing a robot's speed against 0 (i.e. the robot stopping due to damage or collision), make sure it is actually accelerating (i.e. the robot approaching a non-null speed), otherwise you'd risk stopping the robot unintentionally.
+
+---
+
+Enjoy!
+
+<p align="center">
+  <img src="art/demo.gif" width="300" alt="demo"/>
+</p>
