@@ -3,7 +3,7 @@
   <img src="art/preview.png" width="500" alt="demo"/>
 </p>
 
-This is a remake of the vintage videogame [CROBOTS](http://tpoindex.github.io/crobots/) made with the [OCaml bindings](https://github.com/tjammer/raylib-ocaml) of the [raylib game engine](https://www.raylib.com/).
+This is a remake of the vintage videogame [CROBOTS](http://tpoindex.github.io/crobots/) made with the [OCaml bindings](https://github.com/tjammer/raylib-ocaml) for the [raylib game engine](https://www.raylib.com/).
 
 ## Play
 
