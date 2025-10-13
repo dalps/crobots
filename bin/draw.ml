@@ -74,7 +74,7 @@ let draw_sprite (s : t) (r : Robot.t) =
     (x |> Float.round |> Float.to_int, y |> Float.round |> Float.to_int)
   in
   draw_stat_text_s
-    (Printf.sprintf "%d.%s" r.id r.name)
+    (Printf.sprintf "%s" r.name)
     (let vx = V.x v |> int_of_float in
      let x' = x - (vx / 2) in
      if x' < padding then padding

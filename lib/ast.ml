@@ -1,3 +1,4 @@
+(** The type of identifiers *)
 type identifier = string
 
 type intrinsic =

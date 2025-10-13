@@ -36,7 +36,6 @@ let update_robot (r : Robot.t) dt =
       create
         (r.acceleration * Float.cos (_deg2rad * r.heading))
         (r.acceleration * Float.sin (_deg2rad * r.heading))
-      |> (fun v -> rotate v (angular_velocity * dt * _deg2rad))
       |> vector_of_rayvec)
   in
 

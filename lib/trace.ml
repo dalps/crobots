@@ -169,7 +169,7 @@ and trace1_instr ((env, mem) as st) s =
           Instr (IFE (e', s1, s2))
       | WHILE (e, s') -> Instr (WHILE_EXEC (e, SEQ (s', s))) |> trace1_instr st
       | WHILE_EXEC (CONST 0, _) -> St
-      | WHILE_EXEC (CONST _, s) -> Instr s
+      | WHILE_EXEC (CONST _, s) -> Instr s (* s = SEQ( body, WHILE ... ) *)
       | WHILE_EXEC (e, s) ->
           let e' = trace1_expr st e in
           Instr (WHILE_EXEC (e', s))

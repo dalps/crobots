@@ -4,63 +4,64 @@
   <img src="art/preview.png" width="500" alt="demo"/>
 </p>
 
-This is a remake of the vintage videogame [CROBOTS](http://tpoindex.github.io/crobots/) with 2D graphics and rigid body physics provided by [raylib](https://github.com/tjammer/raylib-ocaml) (more precisely, with the [OCaml bindings](https://github.com/tjammer/raylib-ocaml) of the library).
+This is a remake of the vintage videogame [CROBOTS](http://tpoindex.github.io/crobots/) made with the [OCaml bindings](https://github.com/tjammer/raylib-ocaml) of the [raylib game engine](https://www.raylib.com/).
 
 ## Play
 
-To run this game on your computer, you'll need a working installation of OCaml with the `opam` package manager and the `dune` build system installed. Once you have that sorted, you can start the game with the command:
+To run this game on your computer you'll need a working installation of OCaml with the [opam package manager](https://github.com/ocaml/opam) and the [dune build system](https://github.com/ocaml/dune) installed. Once you have that sorted, you can start the game by issuing the command:
 
 ```bash
 dune exec crobots <robot-files>
 ```
 
-There are examples working robots are in the [test directory](test/). In the command line below, we make two rabbits and a sniper fight:
+Where `<robot-files>` is a list of file paths containing the source code of the robots that you want to match.
+
+Robot source code is typically stored in text files with the `.r` extension. A few historical samples in the [samples directory](samples/).
+
+In the command line below, for example, we make two rabbits and a sniper fight:
 
 ```bash
-dune exec crobots test/rabbit test/rabbit test/sniper
+dune exec crobots samples/rabbit.r samples/rabbit.r samples/sniper.r
 ```
 
-Now you can watch the sample robots compete or enjoy spinning your own robots!
+Watch the sample robots compete or enjoy creating your own robots!
 
 ## Robot API
 
-The physics engine introduces a few changes to the robot API. The robot programming style is a bit different than the original game, in that:
+The robot programming language is a super barebones fragment of the C language, enriched with a number of *intrisic functions* (I prefer the name *Robot API*) that allow the robot to move, fire missiles and locate enemies. 
+Check out the Robot API in the [official CROBOTS documentation](https://tpoindex.github.io/crobots/docs/crobots_manual.html#8).
 
-+ The new `heading` primitive can be used to check a robot's current heading
+## Differences from the original game
 
-+ A change in a robot's heading is not instantaneous but requires a number of CPU cycles to reach a desired angle.
+I've introduced a `heading` intrinsic function that can be used to get the robot's current heading.
 
-  In order to make the robot travel on a precise `course` (e.g. towards the top left corner of the field, `135`°), you call the `drive` primitive with a desired speed of 0 to begin turning the robot in place:
+Due to the different design approach to the physics engine, the programming style in this remake is a bit different than that of the original game, as explained below.
 
-  ```c
-  drive(course, 0);
-  ```
+There is angular friction: when you set your robot's heading using the `drive()` intrinsic, it will take a few CPU cycles for you robot to reach the target angle.
 
-  Cycle until the desired heading is met:
+So, in order to make the robot travel on a precise route (e.g. towards the top left corner of the field at 135 degrees), you need to call the `drive` primitive with a target speed of 0 to begin turning the robot in place:
 
-  ```c
-  while (heading() != course) ; // do nothing
-  ```
+```c
+drive(course, 0);
+```
 
-  Then set off with your desired speed:
+Cycle until the target heading is reached:
 
-  ```c
-  drive(course, speed);
-  ```
+```c
+while (heading() != course) ; // do nothing
+```
 
-  The effect of this procedure is shown in the right animation: the robot first rotates then moves in a clean straight line, whereas in the left simulation the robot turns and accelerates at the same time, missing the top-left corner.
+Then set off with your desired speed:
+
+```c
+drive(course, speed);
+```
+
+The effect of this procedure is shown in the right gif: the robot first rotates then moves in a clean straight line, whereas in the left gif the robot turns and accelerates at the same time, missing the top-left corner.
 
   <p align="center">
     <img src="art/turn-default.gif" width="150" alt="free"/>
     <img src="art/turn-precise.gif" width="150" alt="in-place"/>
   </p>
 
-+ Acceleration takes a few more CPU cycles than the original game. Before testing a robot's speed against 0 (i.e. the robot stopping due to damage or collision), make sure it is actually accelerating (i.e. the robot approaching a non-null speed), otherwise you'd risk stopping the robot unintentionally.
-
 ---
-
-Enjoy!
-
-<p align="center">
-  <img src="art/demo.gif" width="300" alt="demo"/>
-</p>

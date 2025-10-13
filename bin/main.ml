@@ -4,7 +4,7 @@ open Gui
 open Draw
 open Defs
 
-let debug = false
+let debug = true
 
 let usage_msg = "crobots <robot-programs>"
 
@@ -101,7 +101,7 @@ let play () =
             r.ep <- Trace.trace1_expr (r.env, r.mem) r.ep;
             Memory.janitor r.env r.mem
         | DEAD -> ()
-      with _ ->
+      with Trace.NoRuleApplies ->
         Printf.printf "%s had to be restarted\n" r.name;
         start_robot r)
     !all_robots;
@@ -237,7 +237,7 @@ let setup () =
   init_window window_width window_height "crobots";
   load_fonts ();
   load_textures ();
-  set_target_fps 0;
+  set_target_fps 60;
 
   (* initialize the robot array *)
   let open Robot in
