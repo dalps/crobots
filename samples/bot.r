@@ -1,4 +1,4 @@
-int distance(x1, y1, x2, y2)
+distance(x1, y1, x2, y2)
 {
   int x, y, d;
 
@@ -9,10 +9,13 @@ int distance(x1, y1, x2, y2)
   return (d);
 }
 
-int main () {
+main()
+{
   int x = loc_x();
   int y = loc_y();
-  drive(0, 100);
-  while (speed() != 0) { loc_x(); loc_y(); }
-  return loc_x();
+  int d = 0;
+  while (1)
+  {
+    drive(180,0);
+  };
 }

@@ -9,7 +9,9 @@ let%test "atan" =
         ( atan ((i - (s / 2)) * 100_000),
           Float.atan (float_of_int (i - (s / 2))) *. _rad2deg ))
   in
-  List.for_all (fun (v, e) -> v = (e |> Float.round |> int_of_float)) l
+  List.for_all
+    (fun (v, e) -> v < 360 && v = (e |> Float.round |> int_of_float))
+    l
 
 let%test "cos" =
   let l =

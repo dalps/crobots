@@ -114,7 +114,7 @@ new_corner() {
   drive(angle,100);
 
   /* make sure the robot is moving before testing its speed */
-  while (speed() < 5)
+  while (speed() > 0 && speed() < 100)
     ;
 
   /* keep traveling until we are within 100 meters */
@@ -181,5 +181,12 @@ plot_course(xx,yy)
         d = 180 + atan((scale * y) / x);  /* north-west, quadrant 2 */
     }
   }
-  return (d);
+
+  return (normalize_degrees(d));
+}
+
+normalize_degrees(deg) {
+  while (deg < 0) deg = deg + 360;
+
+  return deg - (deg / 360) * 360;
 }

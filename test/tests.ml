@@ -99,6 +99,21 @@ let%test "factorial-2" =
   }"
   |> parse |> trace |> last = CONST 24
 
+let%test "while-const" =
+  "
+  main () {
+    int x = 0;
+
+    while(0) {
+      x = x + 42;
+    }
+
+    x = 3;
+
+    return x;
+  }"
+  |> parse |> trace |> last = CONST 3
+
 let%test "factorial-ignore-expr-after-return" =
   "
   fact(n) {
