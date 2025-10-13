@@ -1,6 +1,5 @@
-# 🤖 CROBOTS2000 🤖
-
 <p align="center">
+  <h1>🤖 CROBOTS2000 🤖</h1>
   <img src="art/preview.png" width="500" alt="demo"/>
 </p>
 
@@ -8,23 +7,21 @@ This is a remake of the vintage videogame [CROBOTS](http://tpoindex.github.io/cr
 
 ## Play
 
-To run this game on your computer you'll need a working installation of OCaml with the [opam package manager](https://github.com/ocaml/opam) and the [dune build system](https://github.com/ocaml/dune) installed. Once you have that sorted, you can start the game by issuing the command:
-
 ```bash
-dune exec crobots <robot-files>
+crobots.exe <robot-programs>
 ```
 
-Where `<robot-files>` is a list of file paths containing the source code of the robots that you want to match.
+Where `<robot-programs>` is a list of file paths containing the source code of the robots that you want to match.
 
-Robot source code is typically stored in text files with the `.r` extension. A few historical samples in the [samples directory](samples/).
+Robot source code is typically stored in text files with the `.r` extension. There are a few historical samples in the [samples directory](samples/).
 
 In the command line below, for example, we make two rabbits and a sniper fight:
 
 ```bash
-dune exec crobots samples/rabbit.r samples/rabbit.r samples/sniper.r
+crobots.exe samples/rabbit.r samples/rabbit.r samples/sniper.r
 ```
 
-Watch the sample robots compete or enjoy creating your own robots!
+Enjoy watching the sample robots compete or creating your own robots!
 
 ## Robot API
 
@@ -65,3 +62,11 @@ The effect of this procedure is shown in the right gif: the robot first rotates 
   </p>
 
 ---
+
+## Debugging
+
+To debug or modify this game on your computer you need a working installation of OCaml with the [opam package manager](https://github.com/ocaml/opam) and the [dune build system](https://github.com/ocaml/dune) installed. Once you have that sorted, you can start the game by issuing the command:
+
+```bash
+dune exec crobots <robot-programs>
+```
