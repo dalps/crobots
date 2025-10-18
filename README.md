@@ -1,11 +1,20 @@
 <p align="center">
   <h1>🤖 CROBOTS2000 🤖</h1>
+</p>
+
+<p align="center">
   <img src="art/preview.png" width="500" alt="demo"/>
 </p>
 
-This is a remake of the vintage videogame [CROBOTS](http://tpoindex.github.io/crobots/) made with the [OCaml bindings](https://github.com/tjammer/raylib-ocaml) for the [raylib game engine](https://www.raylib.com/).
+This is a remake of the vintage videogame CROBOTS by Tom Poindexter, made with the [OCaml bindings](https://github.com/tjammer/raylib-ocaml) for the [raylib game engine](https://www.raylib.com/).
 
 ## Play
+
+CROBOTS is played by programming your robot in a text editor of your choice using a friendly C-like language, then inputing its source code into the game.
+
+You can go solo (boring) or match it against other robots (even itself) by providing more than one source file to the game.
+
+Grab [the binary](https://github.com/dalps/crobots/releases/latest) under Releases (Linux only). The usage is pretty straightforward:
 
 ```bash
 crobots.exe <robot-programs>
@@ -21,11 +30,17 @@ In the command line below, for example, we make two rabbits and a sniper fight:
 crobots.exe samples/rabbit.r samples/rabbit.r samples/sniper.r
 ```
 
-Enjoy watching the sample robots compete or creating your own robots!
+If you have a working installation of OCaml with dune, you can also start the game like this:
+
+```bash
+dune exec crobots samples/rabbit.r samples/rabbit.r samples/sniper.r
+```
+
+Enjoy watching the sample robots compete or have a go at creating your own robots!
 
 ## Robot API
 
-The robot programming language is a super barebones fragment of the C language, enriched with a number of *intrisic functions* (I prefer the name *Robot API*) that allow the robot to move, fire missiles and locate enemies. 
+The robot programming language is a super barebones fragment of the C language, enriched with a number of *intrinsic functions* (a.k.a. the Robot API) that allow the robot to move, fire missiles and locate enemies. 
 Check out the Robot API in the [official CROBOTS documentation](https://tpoindex.github.io/crobots/docs/crobots_manual.html#8).
 
 ## Differences from the original game
@@ -34,9 +49,9 @@ I've introduced a `heading` intrinsic function that can be used to get the robot
 
 Due to the different design approach to the physics engine, the programming style in this remake is a bit different than that of the original game, as explained below.
 
-There is angular friction: when you set your robot's heading using the `drive()` intrinsic, it will take a few CPU cycles for you robot to reach the target angle.
+First, there is angular friction: when you set your robot's heading using the `drive()` intrinsic, it will take a few CPU cycles for you robot to reach the target angle. This is unlike the original game, where turning was instantaneous.
 
-So, in order to make the robot travel on a precise route (e.g. towards the top left corner of the field at 135 degrees), you need to call the `drive` primitive with a target speed of 0 to begin turning the robot in place:
+So, if you want your robot to travel on a precise route (e.g. diagonally towards the top left corner of the field at 135 degrees), you need to call the `drive` primitive with a target speed of 0 to begin turning it in place:
 
 ```c
 drive(course, 0);
@@ -70,3 +85,10 @@ To debug or modify this game on your computer you need a working installation of
 ```bash
 dune exec crobots <robot-programs>
 ```
+
+## Acknowledgements
+
+* CROBOTS home: http://tpoindex.github.io/crobots/
+* [raylib-ocaml](https://github.com/tjammer/raylib-ocaml)
+* [Menhir](https://gitlab.inria.fr/fpottier/menhir)
+* Thanks to @bitbart for the idea
